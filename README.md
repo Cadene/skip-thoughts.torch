@@ -14,7 +14,7 @@ The final skip-thought vector is the result of the concatenation of the two vect
 
 The **combine-skip model** outputs the concatenation of both models output vectors (4800 dimensions).
 
-Finally, once those pretrained models are set to take as input a sequence of words (notably by using the `nn.Sequencer`), they can be used to compute a sequence of features of the same size (**seq2seq**) or a features vector (**seq2vec**).
+Finally, once those pretrained models are set to take as input a sequence of words (notably by using the [nn.Sequencer](https://github.com/Element-Research/rnn#sequencer) and [nn.BiSequencer](https://github.com/Element-Research/rnn#bisequencer)), they can be used to compute a sequence of features of the same size (**seq2seq**) or a features vector (**seq2vec**).
 
 ## How to use the pretrained models ?
 
@@ -24,13 +24,8 @@ $ luarocks install tds  # for the hashmap
 $ luarocks install rnn  # for the GRU
 ```
 
-We provide several torch7 files to be able to easly load the skip-thought model of your choice:
-```
-$ wget TODO
-$ wget TODO
-```
-
-The initial vocabulary is made of 930,913 words (including the vocabulary of *word2vec*). However, you would certainly want to create a `nn.LookupTableMaskZero` to map your smaller vocabulary to their corresponding vectors in an efficient and "fine-tunable" way.
+We provide [skipthoughts.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/skipthoughts.lua), a library to easly use the pretrained skip-thoughts models.
+The latter enables you to download the pretrained torch7 hashmaps and GRUs compressed in a [zip file]() hosted on google drive, and also to cleanly set the pretrained skip-thoughts models. In fact, the initial vocabulary is made of 930,913 words (including the vocabulary of *word2vec*). That is why, it is preferable to create a `nn.LookupTableMaskZero` in order to map your smaller vocabulary to their corresponding vectors in an efficient and "fine-tunable" way. See an example bellow:
 
 ```lua
 st = require 'skipthoughts' -- download automatically pretrained models
@@ -45,6 +40,9 @@ print(cb_skip:forward(inputs))
 ```
 
 For further examples please refer to [example.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/example.lua).
+```
+$ th example.lua
+```
 
 ## How to recreate the torch7 files ?
 
@@ -57,12 +55,12 @@ $ pip install numpy
 $ pip install theano
 ```
 
-Create `uni_hashmap.t7` (of type `tds.Hash`) and `bi_hashmap.t7` (of type `tds.Hash`) in `data/final`:
+Create `uni_hashmap.t7` and `bi_hashmap.t7` (both of type [tds.Hash](https://github.com/torch/tds#d--tdshashtbl)) in `data/final`:
 ```
 $ th create_hashmaps.lua -dirname data
 ```
 
-Create `uni_gru.t7` (of type `nn.GRU`) and `bi_gru.t7` (of type `nn.BiSequencer`) in `data/final`:
+Create `uni_gru.t7`, `bi_gru_fwd.t7` and `bi_gru_bwd.t7` (every three of type [nn.GRU](https://github.com/Element-Research/rnn#gru)) in `data/final`:
 ```
 $ th create_grus.lua -dirname data
 ```
