@@ -63,10 +63,9 @@ Create `uni_gru.t7`, `bi_gru_fwd.t7` and `bi_gru_bwd.t7` (every three of type [n
 $ th create_grus.lua -dirname data
 ```
 
-## Aknowledgment
+## Acknowledgment
 
 Beside the wall deep learning community, we would like to specifically thanks:
-- [the authors of the original paper](https://arxiv.org/abs/1506.06726),
-- [the authors of the original implementation](https://github.com/ryankiros/skip-thoughts),
-- [the authors of DPPnet who first propose a porting](https://github.com/HyeonwooNoh/DPPnet),
-- [the authors of Multi Modal Residual Learning who also propose a porting](https://github.com/jnhwkim/nips-mrn-vqa).
+- the authors of the original [paper](https://arxiv.org/abs/1506.06726) and [implementation](https://github.com/ryankiros/skip-thoughts),
+- the authors of DPPnet who first propose a [porting](https://github.com/HyeonwooNoh/DPPnet),
+- the authors of Multi Modal Residual Learning who also propose a [porting](https://github.com/jnhwkim/nips-mrn-vqa).
