@@ -1,6 +1,6 @@
 # Skip-Thoughts.torch
 
-*Skip-Thoughts.torch* is a lightweight porting of skip-thought pretrained models from Theano to Torch7 using the beautiful *rnn* library of Element-Research and *npy4th*.
+*Skip-Thoughts.torch* is a lightweight porting of skip-thought pretrained models from Theano to Torch7 using the beautiful [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
 
 The uni-skip model is made of:
 - a hashmap which, just as word2vec, map a word (from a dictionnary of 930,913 words) to its corresponding vector (620 dimensions),
@@ -29,15 +29,15 @@ $ wget TODO
 The initial vocabulary is made of 930,913 words (including the vocabulary of *word2vec*). However, you would certainly want to create a LookupTable to map you smaller vocabulary to their corresponding vectors in an efficient and "fine-tunable" way.
 
 ```lua
-st = require 'skipthoughts'
+st = require 'skipthoughts' -- download automatically pretrained models
 vocab = {'skipthoughts', 'are', 'cool'}
 inputs = torch.Tensor{{1},{2},{3}}
 uni_skip = st.createUniSkip(vocab)
 bi_skip = st.createBiSkip(vocab)
 cb_skip = st.createCombineSkip(vocab)
-print(uni_skip:forward(inputs):size())
-print(bi_skip:forward(inputs):size())
-print(cb_skip:forward(inputs):size())
+print(uni_skip:forward(inputs))
+print(bi_skip:forward(inputs))
+print(cb_skip:forward(inputs))
 ```
 
 For further examples please refer to [example.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/example.lua).
