@@ -7,11 +7,11 @@ local config = cmd:parse(arg)
 
 local dir_final = paths.concat(config.dirname, 'final')
 
-local vocab = {'skipthoughts','vectors','hello','robot', 'cool', 'are'}
+local vocab = {'skipthoughts','vectors','hello','robot','cool','are'}
 
 -- Inputs and outputs to be of shape seqlen x batchsize x featsize
 -- That is a batch of two sentences must be as follow:
-local inputs = {
+inputs = {
    torch.Tensor{0,1},
    torch.Tensor{4,2},
    torch.Tensor{6,6},
@@ -52,35 +52,15 @@ print(#outputs[1][1])  -- 2, 2400
 -- the last corresponding features of the sequence.
 -- You can do it as follow:
 
----------------------------
--- Uni-Skip seq2vec model
-
-local uni_skip_vec = nn.Sequential()
-uni_skip_vec:add(uni_skip)
-uni_skip_vec:add(nn.SelectTable(-1))
-local outputs = uni_skip_vec:forward(inputs)
+local uni_skip_s2v = skipthoughts.createUniSkipSeq2Vec(vocab, dir_final)
+local outputs = uni_skip_s2v:forward(inputs)
 print(#outputs) -- 2, 2400
 
----------------------------
--- Combine-Skip seq2vec 
+local bi_skip_s2v = skipthoughts.createBiSkipSeq2Vec(vocab, dir_final)
+local outputs = bi_skip_s2v:forward(inputs)
+print(#outputs) -- 2, 2400
 
-local uni_part = nn.Sequential()
-uni_part:add(nn.SelectTable(1))
-uni_part:add(nn.SelectTable(-1))
-
-local bi_part = nn.Sequential()
-bi_part:add(nn.SelectTable(2))
-bi_part:add(nn.SelectTable(-1))
-
-local parallel = nn.ConcatTable()
-parallel:add(uni_part)
-parallel:add(bi_part)
-
-local cb_skip_vec = nn.Sequential()
-cb_skip_vec:add(cb_skip)
-cb_skip_vec:add(parallel)
-cb_skip_vec:add(nn.JoinTable(2))
-
-local outputs = cb_skip_vec:forward(inputs)
+local cb_skip_s2v = skipthoughts.createCombineSkipSeq2Vec(vocab, dir_final)
+local outputs = cb_skip_s2v:forward(inputs)
 print(#outputs) -- 2, 4800
 

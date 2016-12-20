@@ -35,6 +35,9 @@ skipthoughts.createLookupTable = function(vocab, dirname, mode)
    return lookup
 end
 
+--------------------------------------------
+-- Skip Thoughts seq2seq models 
+
 skipthoughts.createUniSkip = function(vocab, dirname)
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
    local gru = torch.load(paths.concat(dirname, 'uni_gru.t7'))
@@ -61,6 +64,43 @@ skipthoughts.createCombineSkip = function(vocab, dirname)
       :add(uni_skip)
       :add(bi_skip)
    return skip
+end
+
+--------------------------------------------
+-- Skip Thoughts seq2vec models 
+
+skipthoughts.createUniSkipSeq2Vec = function(vocab, dirname)
+   local skip = skipthoughts.createUniSkip(vocab, dirname)
+   local skip_s2v = nn.Sequential()
+      :add(skip)
+      :add(nn.SelectTable(-1))
+   return skip_s2v
+end
+
+skipthoughts.createBiSkipSeq2Vec = function(vocab, dirname)
+   local skip = skipthoughts.createBiSkip(vocab, dirname)
+   local skip_s2v = nn.Sequential()
+      :add(skip)
+      :add(nn.SelectTable(-1))
+   return skip_s2v
+end
+
+skipthoughts.createCombineSkipSeq2Vec = function(vocab, dirname)
+   local skip = skipthoughts.createCombineSkip(vocab, dirname)
+   local uni_part = nn.Sequential()
+   uni_part:add(nn.SelectTable(1)) -- takes uni-skip outputs
+   uni_part:add(nn.SelectTable(-1)) -- last features in seq
+   local bi_part = nn.Sequential()
+   bi_part:add(nn.SelectTable(2)) -- takes bi-skip outputs
+   bi_part:add(nn.SelectTable(-1))
+   local parallel = nn.ConcatTable()
+   parallel:add(uni_part)
+   parallel:add(bi_part)
+   local skip_s2v = nn.Sequential()
+   skip_s2v:add(skip)
+   skip_s2v:add(parallel)
+   skip_s2v:add(nn.JoinTable(2))
+   return skip_s2v
 end
 
 return skipthoughts
