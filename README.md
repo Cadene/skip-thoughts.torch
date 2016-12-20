@@ -28,16 +28,13 @@ We provide [skipthoughts.lua](https://github.com/Cadene/skip-thoughts.torch/blob
 The latter enables you to download the pretrained torch7 hashmaps and GRUs compressed in a [zip file]() hosted on google drive, and also to cleanly set the pretrained skip-thoughts models. In fact, the initial vocabulary is made of 930,913 words (including the vocabulary of *word2vec*). That is why, it is preferable to create a `nn.LookupTableMaskZero` in order to map your smaller vocabulary to their corresponding vectors in an efficient and "fine-tunable" way. See an example bellow:
 
 ```lua
-st = require 'skipthoughts' -- download automatically pretrained models
+st = require 'skipthoughts'
 vocab = {'skipthoughts', 'are', 'cool'}
 inputs = torch.Tensor{{1},{2},{3}}
 dirname = 'data'
-uni_skip = st.createUniSkipSeq2Vec(vocab, dirname)
+-- Download and load pretrained models on the fly
+uni_skip = st.createUniSkipSeq2Vec(vocab, 'dirname')
 print(uni_skip:forward(inputs))
-bi_skip = st.createBiSkipSeq2Vec(vocab, dirname)
-print(bi_skip:forward(inputs))
-cb_skip = st.createCombineSkip(vocab, dirname)
-print(cb_skip:forward(inputs))
 ```
 
 For further examples please refer to [example.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/example.lua).
