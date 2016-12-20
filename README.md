@@ -31,11 +31,12 @@ The latter enables you to download the pretrained torch7 hashmaps and GRUs compr
 st = require 'skipthoughts' -- download automatically pretrained models
 vocab = {'skipthoughts', 'are', 'cool'}
 inputs = torch.Tensor{{1},{2},{3}}
-uni_skip = st.createUniSkip(vocab)
-bi_skip = st.createBiSkip(vocab)
-cb_skip = st.createCombineSkip(vocab)
+dirname = 'data'
+uni_skip = st.createUniSkipSeq2Vec(vocab, dirname)
 print(uni_skip:forward(inputs))
+bi_skip = st.createBiSkipSeq2Vec(vocab, dirname)
 print(bi_skip:forward(inputs))
+cb_skip = st.createCombineSkip(vocab, dirname)
 print(cb_skip:forward(inputs))
 ```
 
