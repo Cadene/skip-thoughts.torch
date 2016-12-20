@@ -19,7 +19,7 @@ def format_npy(utable):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dirname', default='data/raw')
+    parser.add_argument('--dirname', default='data')
     args = parser.parse_args()
 
     dir_raw = os.path.join(args.dirname, 'raw')

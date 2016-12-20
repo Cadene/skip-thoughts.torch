@@ -14,7 +14,7 @@ import skipthoughts
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dirname', default='data/skip-thoughts')
+    parser.add_argument('--dirname', default='data')
     args = parser.parse_args()
 
     ############################################
@@ -22,10 +22,10 @@ if __name__ == '__main__':
     ############################################
 
     dir_raw = os.path.join(args.dirname, 'raw')
-    path_umodel = os.path.join(dir_raw, 'uni_skip.npy')
-    path_bmodel = os.path.join(dir_raw, 'bi_skip.npy')
-    path_umodel_opt = os.path.join(dir_raw, 'uni_skip.npy.pkl')
-    path_bmodel_opt = os.path.join(dir_raw, 'bi_skip.npy.pkl')
+    path_umodel = os.path.join(dir_raw, 'uni_skip.npz')
+    path_bmodel = os.path.join(dir_raw, 'bi_skip.npz')
+    path_umodel_opt = os.path.join(dir_raw, 'uni_skip.npz.pkl')
+    path_bmodel_opt = os.path.join(dir_raw, 'bi_skip.npz.pkl')
     
     dir_interim = os.path.join(args.dirname, 'interim')
     ufilename = 'uparams_%s.npy'
@@ -41,12 +41,12 @@ if __name__ == '__main__':
 
     print('Load skip-thoughts with Theano')
     uparams = skipthoughts.init_params(uoptions)
-    uparams = skipthoughts.load_params(path_to_umodel, uparams)
+    uparams = skipthoughts.load_params(path_umodel, uparams)
 
     for k in uparams.keys():
         path_params = os.path.join(dir_interim, ufilename % k)
         print('Save ' + ufilename % k)
-        numpy.save(path_params, uparams[k]) 
+        np.save(path_params, uparams[k]) 
 
     ############################################
     # Format params of bi-skip model
@@ -56,11 +56,11 @@ if __name__ == '__main__':
         boptions = pkl.load(f)
 
     print('Load skip-thoughts with Theano')
-    bparams = skipthoughts.init_params(boptions)
-    bparams = skipthoughts.load_params(path_to_bmodel, bparams)
+    bparams = skipthoughts.init_params_bi(boptions)
+    bparams = skipthoughts.load_params(path_bmodel, bparams)
     print(bparams.keys())
 
     for k in bparams.keys():
         path_params = os.path.join(dir_interim, bfilename % k)
         print('Save ' + bfilename % k)
-        numpy.save(path_params, bparams[k]) 
+        np.save(path_params, bparams[k]) 

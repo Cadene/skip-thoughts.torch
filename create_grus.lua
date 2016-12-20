@@ -34,22 +34,21 @@ local config = cmd:parse(arg)
 local dir_raw = paths.concat(config.dirname, 'raw')
 local dir_interim = paths.concat(config.dirname, 'interim')
 
-local dir_processed = paths.concat(config.dirname, 'processed')
-local path_bi_gru_fwd = paths.concat(dir_processed, 'bi_gru_fwd.t7')
-local path_bi_gru_bwd = paths.concat(dir_processed, 'bi_gru_bwd.t7')
-os.execute('mkdir -p '..dir_processed)
-
 local dir_final = paths.concat(config.dirname, 'final')
 local path_uni_gru = paths.concat(dir_final, 'uni_gru.t7')
-local path_bi_gru = paths.concat(dir_final, 'bi_gru.t7')
+local path_bi_gru_fwd = paths.concat(dir_final, 'bi_gru_fwd.t7')
+local path_bi_gru_bwd = paths.concat(dir_final, 'bi_gru_bwd.t7')
 os.execute('mkdir -p '..dir_final)
 
 ---------------------------------------------
 -- Download and format parameters with theano
 ---------------------------------------------
 
-if not paths.dirp(dir_raw) then
+if not paths.dirp(dir_raw) or
+   not paths.filep(paths.concat(dir_raw, 'bi_skip.npz.pkl')) then
    download(dir_raw)
+end
+if not paths.dirp(dir_interim) then
    os.execute('python format_params.py --dirname '..config.dirname)
 end
 
@@ -102,8 +101,5 @@ local inputSize = 620
 local outputSize = 1200
 local bi_gru_bwd = create_gru(inputSize, outputSize, bparams_r)
 torch.save(path_bi_gru_bwd, bi_gru_bwd)
-
-local bi_gru = nn.BiSequencer(bi_gru_fwd, bi_gru_bwd)
-torch.save(path_bi_gru, bi_gru)
 
 
