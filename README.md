@@ -1,6 +1,6 @@
 # Skip-Thoughts.torch
 
-*Skip-Thoughts.torch* is a lightweight porting of skip-thought pretrained models from Theano to Torch7 using the beautiful [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
+*Skip-Thoughts.torch* is a lightweight porting of skip-thought pretrained models from Theano to Torch7 using the beautiful [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th). It was made by [Remi Cadene](http://remicadene.com), a PhD Student at [UPMC](http://upmc.fr/en/index.html)-[LIP6](https://www.lip6.fr/recherche/team.php?acronyme=MLIA).
 
 The **uni-skip model** is made of:
 - a hashmap which, just as word2vec, map a word (from a dictionnary of 930,913 words) to its corresponding vector (620 dimensions),
