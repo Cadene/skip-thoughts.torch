@@ -27,7 +27,11 @@ skipthoughts.createLookupTable = function(vocab, dirname, mode)
    local lookup = nn.LookupTableMaskZero(#vocab, 620)
    for i=1, #vocab do
       if hashmap[vocab[i]] then
-         lookup.weight[i]:copy(hashmap[vocab[i]])
+         print(hashmap[vocab[i]]:size())
+	 print(hashmap[vocab[i]][1])
+         print(lookup.weight[i+1][1])
+	 lookup.weight[i+1]:copy(hashmap[vocab[i]]) -- i+1 because 1 is the 0 vector
+         print(lookup.weight[i+1][1])
       else
          print('Warning '..vocab[i]..' not present in hashamp')
       end
@@ -40,9 +44,10 @@ end
 
 skipthoughts.createUniSkip = function(vocab, dirname)
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
-   local gru = torch.load(paths.concat(dirname, 'uni_gru.t7'))
+   local gru = torch.load(paths.concat(dirname, 'uni_gru.t7')):trimZero(1)
    local skip = nn.Sequential()
       :add(lookup)
+      --:add(nn.Normalize(2))
       :add(gru)
    return nn.Sequencer(skip)
 end
