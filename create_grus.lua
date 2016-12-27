@@ -1,5 +1,6 @@
 require 'nn'
 require 'rnn'
+require 'GRUST'
 local npy4th = require 'npy4th'
 
 function download(dirraw)
@@ -11,8 +12,20 @@ function download(dirraw)
    os.execute('wget http://www.cs.toronto.edu/~rkiros/models/bi_skip.npz.pkl -P ' .. dirraw)
 end
 
-function create_gru(inputSize, outputSize, params)
+function create_gru_ElementResarch(inputSize, outputSize, params)
    local gru = nn.GRU(inputSize, outputSize)
+   local gru_params = gru:parameters()
+   gru_params[1]:copy(params.W:t())
+   gru_params[2]:copy(params.b)
+   gru_params[3]:copy(params.U:t())
+   gru_params[4]:copy(params.Wx:t())
+   gru_params[5]:copy(params.bx)
+   gru_params[6]:copy(params.Ux:t())
+   return gru
+end
+
+function create_gru(inputSize, outputSize, params)
+   local gru = nn.GRUST(inputSize, outputSize)
    local gru_params = gru:parameters()
    gru_params[1]:copy(params.W:t())
    gru_params[2]:copy(params.b)
