@@ -37,47 +37,67 @@ skipthoughts.createLookupTable = function(vocab, dirname, mode)
 end
 
 --------------------------------------------
--- Skip Thoughts seq2seq models 
+-- Skip Thoughts seq2vec models 
 
-skipthoughts.createUniSkip = function(vocab, dirname)
+skipthoughts.createUniSkip = function(vocab, dirname, norm)
+
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
    local gru = torch.load(paths.concat(dirname, 'uni_gru.t7'))
+   local seq_gru = nn.Sequencer(gru)
+   seq_gru = nn.TrimZero(seq_gru, 2)
+
    local skip = nn.Sequential()
-   skip:add(nn.Sequencer(lookup))
-   skip:add(nn.Sequencer(gru))
+   skip:add(lookup)
+   skip:add(nn.Transpose({1,2}))
+   skip:add(seq_gru)
+   skip:add(nn.Transpose({2,1}))
+   skip:add(nn.SplitTable(2))
+   skip:add(nn.SelectTable(-1))
+   if norm then
+      skip:add(nn.Normalize(2))
+   end
+
    return skip
 end
 
-skipthoughts.createUniSkip_mrn = function(vocab, dirname)
-   local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
-   local gru_mrn = torch.load(paths.concat(dirname, 'uni_gru_mrn.t7'))
-   local gru = nn.GRU(gru_mrn.inputSize, gru_mrn.outputSize)
-   local gru_mrn_params = gru_mrn:parameters()
-   local gru_params = gru:parameters()
-   gru_params[1]:copy(gru_mrn_params[1])
-   gru_params[2]:copy(gru_mrn_params[2])
-   gru_params[3]:copy(gru_mrn_params[3])
-   gru_params[4]:copy(gru_mrn_params[4])
-   gru_params[5]:copy(gru_mrn_params[5])
-   gru_params[6]:copy(gru_mrn_params[6])
-   local skip = nn.Sequential()
-   skip:add(nn.Sequencer(lookup))
-   skip:add(nn.Sequencer(gru))
-   return skip
-end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 skipthoughts.createBiSkip = function(vocab, dirname)
+
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'bi')
    local gru_fwd = torch.load(paths.concat(dirname, 'bi_gru_fwd.t7'))
    local gru_bwd = torch.load(paths.concat(dirname, 'bi_gru_bwd.t7'))
+   gru_fwd.batchfirst = true
+   gru_bwd.batchfirst = true
+
    local merge = nn.Sequential()
       :add(nn.ConcatTable()
          :add(nn.SelectTable(2))
          :add(nn.SelectTable(1)))
       :add(nn.JoinTable(1,1))
+
    local skip = nn.Sequential()
-      :add(nn.Sequencer(lookup))
+      :add(lookup)
       :add(nn.BiSequencer(gru_bwd, gru_fwd, merge))
+
    return skip
 end
 
@@ -135,6 +155,24 @@ skipthoughts.createCombineSkipSeq2Vec = function(vocab, dirname, norm)
    end
    skip_s2v:add(nn.JoinTable(2))
    return skip_s2v
+end
+
+skipthoughts.createUniSkip_mrn = function(vocab, dirname)
+   local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
+   local gru_mrn = torch.load(paths.concat(dirname, 'uni_gru_mrn.t7'))
+   local gru = nn.GRU(gru_mrn.inputSize, gru_mrn.outputSize)
+   local gru_mrn_params = gru_mrn:parameters()
+   local gru_params = gru:parameters()
+   gru_params[1]:copy(gru_mrn_params[1])
+   gru_params[2]:copy(gru_mrn_params[2])
+   gru_params[3]:copy(gru_mrn_params[3])
+   gru_params[4]:copy(gru_mrn_params[4])
+   gru_params[5]:copy(gru_mrn_params[5])
+   gru_params[6]:copy(gru_mrn_params[6])
+   local skip = nn.Sequential()
+   skip:add(nn.Sequencer(lookup))
+   skip:add(nn.Sequencer(gru))
+   return skip
 end
 
 return skipthoughts

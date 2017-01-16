@@ -13,7 +13,6 @@
 -- its own dropouts. First, try 0.25 for p as Gal (2016) suggested, presumably, 
 -- because of summations of two parts in GRUSTs connections. 
 ------------------------------------------------------------------------
-assert(not nn.GRUST, "update nnx package : luarocks install nnx")
 local GRUST, parent = torch.class('nn.GRUST', 'nn.AbstractRecurrent')
 
 function GRUST:__init(inputSize, outputSize, rho, p, mono)
