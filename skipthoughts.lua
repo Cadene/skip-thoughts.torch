@@ -39,19 +39,57 @@ end
 --------------------------------------------
 -- Skip Thoughts seq2vec models 
 
-skipthoughts.createUniSkip = function(vocab, dirname, norm)
+skipthoughts.createUniSkip = function(vocab, dirname, dropout, norm)
 
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
    local gru = torch.load(paths.concat(dirname, 'uni_gru.t7'))
+   
+   if dropout then
+      local bgru = nn.GRUST(gru.inputSize, gru.outputSize, false, dropout, true)
+      bgru:migrate(gru:parameters())
+      gru = bgru
+   end
+
+   gru:trimZero(1)
+   
    local seq_gru = nn.Sequencer(gru)
-   seq_gru = nn.TrimZero(seq_gru, 2)
+   --seq_gru = nn.TrimZero(seq_gru, 2)
 
    local skip = nn.Sequential()
    skip:add(lookup)
+   -- skip:add(nn.SplitTable(2))
    skip:add(nn.Transpose({1,2}))
    skip:add(seq_gru)
    skip:add(nn.Transpose({2,1}))
    skip:add(nn.SplitTable(2))
+   skip:add(nn.SelectTable(-1))
+   if norm then
+      skip:add(nn.Normalize(2))
+   end
+
+   return skip
+end
+
+
+
+
+skipthoughts.createBiSkip = function(vocab, dirname, norm)
+   local lookup = skipthoughts.createLookupTable(vocab, dirname, 'bi')
+   local gru_fwd = torch.load(paths.concat(dirname, 'bi_gru_fwd.t7'))
+   local gru_bwd = torch.load(paths.concat(dirname, 'bi_gru_bwd.t7'))
+   gru_fwd:trimZero(1)
+   gru_bwd:trimZero(1)
+
+   local merge = nn.Sequential()
+      :add(nn.ConcatTable()
+         :add(nn.SelectTable(2))
+         :add(nn.SelectTable(1)))
+      :add(nn.JoinTable(1,1))
+
+   local skip = nn.Sequential()
+   skip:add(nn.TrimZero(lookup,1))
+   skip:add(nn.SplitTable(2))
+   skip:add(nn.BiSequencer(gru_bwd, gru_fwd, merge))
    skip:add(nn.SelectTable(-1))
    if norm then
       skip:add(nn.Normalize(2))
@@ -75,31 +113,26 @@ end
 
 
 
+-- skipthoughts.createBiSkip = function(vocab, dirname)
 
+--    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'bi')
+--    local gru_fwd = torch.load(paths.concat(dirname, 'bi_gru_fwd.t7'))
+--    local gru_bwd = torch.load(paths.concat(dirname, 'bi_gru_bwd.t7'))
+--    gru_fwd.batchfirst = true
+--    gru_bwd.batchfirst = true
 
+--    local merge = nn.Sequential()
+--       :add(nn.ConcatTable()
+--          :add(nn.SelectTable(2))
+--          :add(nn.SelectTable(1)))
+--       :add(nn.JoinTable(1,1))
 
+--    local skip = nn.Sequential()
+--       :add(lookup)
+--       :add(nn.BiSequencer(gru_bwd, gru_fwd, merge))
 
-
-skipthoughts.createBiSkip = function(vocab, dirname)
-
-   local lookup = skipthoughts.createLookupTable(vocab, dirname, 'bi')
-   local gru_fwd = torch.load(paths.concat(dirname, 'bi_gru_fwd.t7'))
-   local gru_bwd = torch.load(paths.concat(dirname, 'bi_gru_bwd.t7'))
-   gru_fwd.batchfirst = true
-   gru_bwd.batchfirst = true
-
-   local merge = nn.Sequential()
-      :add(nn.ConcatTable()
-         :add(nn.SelectTable(2))
-         :add(nn.SelectTable(1)))
-      :add(nn.JoinTable(1,1))
-
-   local skip = nn.Sequential()
-      :add(lookup)
-      :add(nn.BiSequencer(gru_bwd, gru_fwd, merge))
-
-   return skip
-end
+--    return skip
+-- end
 
 skipthoughts.createCombineSkip = function(vocab, dirname)
    local uni_skip = skipthoughts.createUniSkip(vocab, dirname)

@@ -15,7 +15,13 @@ local tester = torch.Tester()
 local mytest = torch.TestSuite()
 
 local vocab = {'robots', 'are', 'very', 'cool', '<eos>'}
-local uniskip = skipthoughts.createUniSkip(vocab, config.dirname)
+
+local dropout = 0.25
+
+local uniskip = skipthoughts.createUniSkip(vocab, config.dirname, dropout)
+uniskip:evaluate()
+-- biskip  = skipthoughts.createBiSkip(vocab, config.dirname)
+
 
 -----------------------------------------------
 -- OneWord, NormFalse
@@ -28,15 +34,13 @@ function mytest.UniSkip_OneWord_NormFalse_EosFalse()
       "features and outputs should be approximately equal")
 end
 
--- function mytest.BiSkip_OneWord_NormFalse_EosFalse()
---    local vocab = {'are', 'robots', 'cool'}
---    local inputs = torch.Tensor{{2}}
---    local skip = skipthoughts.createBiSkip(vocab, config.dirname)
---    local outputs = skip:forward(inputs):float()
---    local features = npy4th.loadnpy('test/data/features_oneWord_normFalse_eosFalse.npy')
---    tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
---       "features and outputs should be approximately equal")
--- end
+function mytest.BiSkip_OneWord_NormFalse_EosFalse()
+   local inputs = torch.Tensor{{1}}
+   local outputs = biskip:forward(inputs):float()
+   local features = npy4th.loadnpy('test/data/features_oneWord_normFalse_eosFalse.npy')
+   tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
+      "features and outputs should be approximately equal")
+end
 
 -- function mytest.CombineSkip_OneWord_NormFalse_EosFalse()
 --    local vocab = {'robots'}
@@ -59,15 +63,13 @@ function mytest.UniSkip_OneWord_NormTrue_EosFalse()
       "features and outputs should be approximately equal")
 end
 
--- function mytest.BiSkip_OneWord_NormTrue_EosFalse()
---    local vocab = {'robots'}
---    local inputs = torch.Tensor{{1}}
---    local skip = skipthoughts.createBiSkip(vocab, config.dirname, true)
---    local outputs = skip:forward(inputs):float()
---    local features = npy4th.loadnpy('test/data/features_oneWord_normTrue_eosFalse.npy')
---    tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
---       "features and outputs should be approximately equal")
--- end
+function mytest.BiSkip_OneWord_NormTrue_EosFalse()
+   local inputs = torch.Tensor{{1}}
+   local outputs = nn.Normalize(2):forward(biskip:forward(inputs)):float()
+   local features = npy4th.loadnpy('test/data/features_oneWord_normTrue_eosFalse.npy')
+   tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
+      "features and outputs should be approximately equal")
+end
 
 -- function mytest.CombineSkip_OneWord_NormTrue_EosFalse()
 --    local vocab = {'robots'}
@@ -90,11 +92,19 @@ function mytest.UniSkip_OneWord_NormFalse_EosFalse_ZeroPadding()
       "features and outputs should be approximately equal")
 end
 
+function mytest.BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding()
+   local inputs = torch.Tensor{{0,0,1}}
+   local outputs = biskip:forward(inputs):float()
+   local features = npy4th.loadnpy('test/data/features_oneWord_normFalse_eosFalse.npy')
+   tester:eq(features:narrow(2, 1, 2400), outputs, 0.0001,
+      "features and outputs should be approximately equal")
+end
+
 -----------------------------------------------
 -- One Word, End of Sequence char
 
 function mytest.UniSkip_OneWord_NormFalse_EosTrue()
-   local inputs = torch.Tensor{{1,5}}
+   local inputs = torch.Tensor{{0,1,5}}
    local outputs = uniskip:forward(inputs):float()
    local features = npy4th.loadnpy('test/data/features_oneWord_normFalse_eosTrue.npy')
    tester:eq(features:narrow(2, 1, 2400), outputs, 0.0001,
@@ -131,7 +141,7 @@ end
 -- One Word, End of Sequence char, NormTrue
 
 function mytest.UniSkip_OneWord_NormTrue_EosTrue()
-   local inputs = torch.Tensor{{1,5}}
+   local inputs = torch.Tensor{{0,1,5}}
    local outputs = nn.Normalize(2):forward(uniskip:forward(inputs)):float()
    local features = npy4th.loadnpy('test/data/features_oneWord_normTrue_eosTrue.npy')
    tester:eq(features:narrow(2, 1, 2400), outputs, 0.0001,
@@ -168,26 +178,20 @@ end
 -- Multiple Words
 
 function mytest.UniSkip_NormFalse_EosFalse()
-   local inputs = torch.Tensor{{1,2,4}}
+   local inputs = torch.Tensor{{0,1,2,4}}
    local outputs = uniskip:forward(inputs):float()
    local features = npy4th.loadnpy('test/data/features_normFalse_eosFalse.npy')
    tester:eq(features:narrow(2, 1, 2400), outputs, 0.0001,
       "features and outputs should be approximately equal")
 end
 
--- function mytest.BiSkip_NormFalse_EosFalse()
---    local vocab = {'robots', 'are', 'cool'}
---    local inputs = {
---       torch.Tensor{1},
---       torch.Tensor{2},
---       torch.Tensor{3}
---    }
---    local skip = skipthoughts.createBiSkip(vocab, config.dirname)
---    local outputs = skip:forward(inputs):float()
---    local features = npy4th.loadnpy('test/data/features_normFalse_eosFalse.npy')
---    tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
---       "features and outputs should be approximately equal")
--- end
+function mytest.BiSkip_NormFalse_EosFalse()
+   local inputs = torch.Tensor{{0,1,2,4}}
+   local outputs = biskip:forward(inputs):float()
+   local features = npy4th.loadnpy('test/data/features_normFalse_eosFalse.npy')
+   tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
+      "features and outputs should be approximately equal")
+end
 
 -- function mytest.CombineSkip_NormFalse_EosFalse()
 --    local vocab = {'robots', 'are', 'cool'}
@@ -257,9 +261,10 @@ end
 
 tester:add(mytest.UniSkip_NormFalse_EosFalse,
                  'UniSkip_NormFalse_EosFalse')
-
+tester:add(mytest.UniSkip_OneWord_NormFalse_EosFalse_ZeroPadding,
+                  'UniSkip_OneWord_NormFalse_EosFalse_ZeroPadding')
 tester:add(mytest.UniSkip_OneWord_NormFalse_EosFalse,
-   'UniSkip_OneWord_NormFalse_EosFalse')
+                  'UniSkip_OneWord_NormFalse_EosFalse')
 tester:add(mytest.UniSkip_OneWord_NormTrue_EosFalse,
                  'UniSkip_OneWord_NormTrue_EosFalse')
 tester:add(mytest.UniSkip_OneWord_NormFalse_EosTrue,
@@ -269,6 +274,8 @@ tester:add(mytest.UniSkip_OneWord_NormTrue_EosTrue,
 
 -- tester:add(mytest.BiSkip_OneWord_NormFalse_EosFalse,
 --                  'BiSkip_OneWord_NormFalse_EosFalse')
+-- tester:add(mytest.BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding,
+--                  'BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding')
 -- tester:add(mytest.BiSkip_NormFalse_EosFalse,
 --                  'BiSkip_NormFalse_EosFalse')
 
