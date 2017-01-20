@@ -28,7 +28,7 @@ skipthoughts.createLookupTable = function(vocab, dirname, mode)
    local lookup = nn.LookupTableMaskZero(#vocab, 620)
    for i=1, #vocab do
       if hashmap[vocab[i]] then
-	      lookup.weight[i+1]:copy(hashmap[vocab[i]]) -- i+1 because 1 is the 0 vector
+         lookup.weight[i+1]:copy(hashmap[vocab[i]]) -- i+1 because 1 is the 0 vector
       else
          print('Warning '..vocab[i]..' not present in hashamp')
       end
@@ -50,7 +50,7 @@ skipthoughts.createUniSkip = function(vocab, dirname, dropout, norm)
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
    local gru = torch.load(paths.concat(dirname, 'uni_gru.t7'))
    
-   if dropout then
+   if dropout and dropout ~= 0 then
       gru = addDropout(gru, dropout)
    end
    gru:trimZero(1) -- doesn't forward padded zeros
@@ -75,7 +75,7 @@ skipthoughts.createBiSkip = function(vocab, dirname, dropout, norm)
    local gru_fwd = torch.load(paths.concat(dirname, 'bi_gru_fwd.t7'))
    local gru_bwd = torch.load(paths.concat(dirname, 'bi_gru_bwd.t7'))
    
-   if dropout then
+   if dropout and dropout ~= 0 then
       gru_fwd = addDropout(gru_fwd, dropout)
       gru_bwd = addDropout(gru_bwd, dropout)
    end
@@ -118,9 +118,14 @@ end
 skipthoughts.createCombineSkip = function(vocab, dirname, dropout, norm)
    local uni_skip = skipthoughts.createUniSkip(vocab, dirname, dropout, norm)
    local bi_skip  = skipthoughts.createBiSkip(vocab, dirname, dropout, norm)
-   local comb_skip = nn.ConcatTable()
-      :add(uni_skip)
-      :add(bi_skip)
+   local comb_skip = nn.Sequential()
+   comb_skip:add(
+      nn.ConcatTable()
+         :add(uni_skip)
+         :add(bi_skip)
+   )
+   comb_skip:add(nn.JoinTable(1,1))
+
    return comb_skip
 end
 
