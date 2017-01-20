@@ -12,7 +12,7 @@ function download(dirraw)
    os.execute('wget http://www.cs.toronto.edu/~rkiros/models/bi_skip.npz.pkl -P ' .. dirraw)
 end
 
-function create_gru_ElementResarch(inputSize, outputSize, params)
+function create_gru(inputSize, outputSize, params)
    local gru = nn.GRU(inputSize, outputSize)
    local gru_params = gru:parameters()
    gru_params[1]:copy(params.W:t())
@@ -24,7 +24,7 @@ function create_gru_ElementResarch(inputSize, outputSize, params)
    return gru
 end
 
-function create_gru(inputSize, outputSize, params)
+function create_grust(inputSize, outputSize, params)
    local gru = nn.GRUST(inputSize, outputSize)
    local gru_params = gru:parameters()
    gru_params[1]:copy(params.W:t())
@@ -80,7 +80,7 @@ uparams.bx = npy4th.loadnpy(paths.concat(dir_interim, 'uparams_encoder_bx.npy'))
 
 local inputSize = 620
 local outputSize = 2400
-local uni_gru = create_gru(inputSize, outputSize, uparams)
+local uni_gru = create_grust(inputSize, outputSize, uparams)
 torch.save(path_uni_gru, uni_gru)
 
 ---------------------------------------------
@@ -98,7 +98,7 @@ bparams.bx = npy4th.loadnpy(paths.concat(dir_interim, 'bparams_encoder_bx.npy'))
 
 local inputSize = 620
 local outputSize = 1200
-local bi_gru_fwd = create_gru(inputSize, outputSize, bparams)
+local bi_gru_fwd = create_grust(inputSize, outputSize, bparams)
 torch.save(path_bi_gru_fwd, bi_gru_fwd)
 
 print('Load bi-GRU reverse params')
@@ -112,7 +112,7 @@ bparams_r.bx = npy4th.loadnpy(paths.concat(dir_interim, 'bparams_encoder_r_bx.np
 
 local inputSize = 620
 local outputSize = 1200
-local bi_gru_bwd = create_gru(inputSize, outputSize, bparams_r)
+local bi_gru_bwd = create_grust(inputSize, outputSize, bparams_r)
 torch.save(path_bi_gru_bwd, bi_gru_bwd)
 
 

@@ -18,10 +18,17 @@ local vocab = {'robots', 'are', 'very', 'cool', '<eos>'}
 
 local dropout = 0.25
 
-local uniskip = skipthoughts.createUniSkip(vocab, config.dirname, dropout)
+uniskip = skipthoughts.createUniSkip(vocab, config.dirname, dropout)
 uniskip:evaluate()
--- biskip  = skipthoughts.createBiSkip(vocab, config.dirname)
 
+biskip = skipthoughts.createBiSkip(vocab, config.dirname, dropout)
+biskip:evaluate()
+
+-- inputs = torch.Tensor{{1,2,3}}
+
+-- outputs = biskip:forward(inputs):float()
+
+-- do return end
 
 -----------------------------------------------
 -- OneWord, NormFalse
@@ -96,7 +103,7 @@ function mytest.BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding()
    local inputs = torch.Tensor{{0,0,1}}
    local outputs = biskip:forward(inputs):float()
    local features = npy4th.loadnpy('test/data/features_oneWord_normFalse_eosFalse.npy')
-   tester:eq(features:narrow(2, 1, 2400), outputs, 0.0001,
+   tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
       "features and outputs should be approximately equal")
 end
 
@@ -185,11 +192,19 @@ function mytest.UniSkip_NormFalse_EosFalse()
       "features and outputs should be approximately equal")
 end
 
-function mytest.BiSkip_NormFalse_EosFalse()
+function mytest.BiSkip_NormFalse_EosFalse_forward()
    local inputs = torch.Tensor{{0,1,2,4}}
-   local outputs = biskip:forward(inputs):float()
+   local outputs = biskip:forward(inputs):float():narrow(2, 1, 1200)
    local features = npy4th.loadnpy('test/data/features_normFalse_eosFalse.npy')
-   tester:eq(features:narrow(2, 2401, 2400), outputs, 0.0001,
+   tester:eq(features:narrow(2, 2401, 1200), outputs, 0.0001,
+      "features and outputs should be approximately equal")
+end
+
+function mytest.BiSkip_NormFalse_EosFalse_backward()
+   local inputs = torch.Tensor{{0,1,2,4}}
+   local outputs = biskip:forward(inputs):float():narrow(2, 1201, 1200)
+   local features = npy4th.loadnpy('test/data/features_normFalse_eosFalse.npy')
+   tester:eq(features:narrow(2, 3601, 1200), outputs, 0.0001,
       "features and outputs should be approximately equal")
 end
 
@@ -259,25 +274,31 @@ end
 
 --tester:add(mytest)
 
-tester:add(mytest.UniSkip_NormFalse_EosFalse,
-                 'UniSkip_NormFalse_EosFalse')
-tester:add(mytest.UniSkip_OneWord_NormFalse_EosFalse_ZeroPadding,
-                  'UniSkip_OneWord_NormFalse_EosFalse_ZeroPadding')
-tester:add(mytest.UniSkip_OneWord_NormFalse_EosFalse,
-                  'UniSkip_OneWord_NormFalse_EosFalse')
-tester:add(mytest.UniSkip_OneWord_NormTrue_EosFalse,
-                 'UniSkip_OneWord_NormTrue_EosFalse')
-tester:add(mytest.UniSkip_OneWord_NormFalse_EosTrue,
-                 'UniSkip_OneWord_NormFalse_EosTrue')
-tester:add(mytest.UniSkip_OneWord_NormTrue_EosTrue,
-                 'UniSkip_OneWord_NormTrue_EosTrue')
+if uniskip then
+   tester:add(mytest.UniSkip_NormFalse_EosFalse,
+                    'UniSkip_NormFalse_EosFalse')
+   tester:add(mytest.UniSkip_OneWord_NormFalse_EosFalse_ZeroPadding,
+                     'UniSkip_OneWord_NormFalse_EosFalse_ZeroPadding')
+   tester:add(mytest.UniSkip_OneWord_NormFalse_EosFalse,
+                     'UniSkip_OneWord_NormFalse_EosFalse')
+   tester:add(mytest.UniSkip_OneWord_NormTrue_EosFalse,
+                    'UniSkip_OneWord_NormTrue_EosFalse')
+   tester:add(mytest.UniSkip_OneWord_NormFalse_EosTrue,
+                    'UniSkip_OneWord_NormFalse_EosTrue')
+   tester:add(mytest.UniSkip_OneWord_NormTrue_EosTrue,
+                    'UniSkip_OneWord_NormTrue_EosTrue')
+end
 
--- tester:add(mytest.BiSkip_OneWord_NormFalse_EosFalse,
---                  'BiSkip_OneWord_NormFalse_EosFalse')
--- tester:add(mytest.BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding,
---                  'BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding')
--- tester:add(mytest.BiSkip_NormFalse_EosFalse,
---                  'BiSkip_NormFalse_EosFalse')
+if biskip then
+   tester:add(mytest.BiSkip_OneWord_NormFalse_EosFalse,
+                    'BiSkip_OneWord_NormFalse_EosFalse')
+   tester:add(mytest.BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding,
+                    'BiSkip_OneWord_NormFalse_EosFalse_ZeroPadding')
+   tester:add(mytest.BiSkip_NormFalse_EosFalse_forward,
+                    'BiSkip_NormFalse_EosFalse_forward')
+   tester:add(mytest.BiSkip_NormFalse_EosFalse_backward,
+                    'BiSkip_NormFalse_EosFalse_backward')
+end
 
 -- tester:add(mytest.BiSkip_OneWord_NormFalse_EosTrue,
 --                  'BiSkip_OneWord_NormFalse_EosTrue')
