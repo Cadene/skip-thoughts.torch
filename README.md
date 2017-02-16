@@ -99,7 +99,7 @@ GRU_bw:forward(reverse_input) = {features(world), features(world,hello), feature
 -- with MaskZero the final output will be 0
 GRU_bw:forward(reverse_input) = {features(world), features(world,hello), 0}
 
--- with MaskZeroCopy the final output will be features(hello)
+-- with MaskZeroCopy the final output will be features(word,hello)
 GRU_bw:forward(reverse_input) = {features(world), features(word,hello), features(word,hello)}
 ```
 
