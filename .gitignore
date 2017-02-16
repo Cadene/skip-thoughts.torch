@@ -1,5 +1,4 @@
-data/*
-skip-thoughts/*
+theano/skip-thoughts/*
 ._.DS_Store
 .DS_Store
-test/data/*
+data/*

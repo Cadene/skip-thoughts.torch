@@ -1,6 +1,6 @@
 require 'nn'
 require 'rnn'
-require 'GRUST'
+require './GRUST'
 require 'tds'
 -- local argcheck = require 'argcheck'
 
@@ -49,7 +49,7 @@ skipthoughts.createUniSkip = function(vocab, dirname, dropout, norm)
 
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
    local gru = torch.load(paths.concat(dirname, 'uni_gru.t7'))
-   
+
    if dropout and dropout ~= 0 then
       gru = addDropout(gru, dropout)
    end
@@ -80,32 +80,23 @@ skipthoughts.createBiSkip = function(vocab, dirname, dropout, norm)
       gru_bwd = addDropout(gru_bwd, dropout)
    end
    gru_fwd:trimZero(1)
-   gru_bwd:trimZero(1)
-
-   -- local merge = nn.Sequential()
-   --    :add(nn.ConcatTable()
-   --       :add(nn.SelectTable(2))
-   --       :add(nn.SelectTable(1)))
-   --    :add(nn.JoinTable(1,1))
+   gru_bwd:maskZeroCopy(1)
 
    local bi_skip = nn.Sequential()
    bi_skip:add(lookup)
    bi_skip:add(nn.SplitTable(2))
-   --bi_skip:add(nn.BiSequencer(gru_bwd, gru_fwd, merge))
-   bi_skip:add(nn.BiSequencer(gru_fwd, gru_bwd))
-   -- bi_skip:add(
-   --    nn.ConcatTable()
-   --       :add(nn.Sequencer(gru_fwd))
-   --       :add(
-   --          nn.Sequential()
-   --             :add(nn.ReverseTable())
-   --             :add(nn.Sequencer(gru_bwd))
-   --             :add(nn.ReverseTable())
-   --       )
-
-   -- )
-   -- bi_skip:add(nn.ZipTable())
-   -- bi_skip:add(nn.Sequencer(nn.JoinTable(1, 1)))
+   bi_skip:add(
+      nn.ConcatTable()
+         :add(nn.Sequencer(gru_fwd))
+         :add(
+            nn.Sequential()
+               :add(nn.ReverseTable())
+               :add(nn.Sequencer(gru_bwd))
+               --:add(nn.ReverseTable())
+         )
+   )
+   bi_skip:add(nn.ZipTable())
+   bi_skip:add(nn.Sequencer(nn.JoinTable(1, 1)))
 
    bi_skip:add(nn.SelectTable(-1))
    if norm then

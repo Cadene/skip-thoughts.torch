@@ -2,15 +2,10 @@ local npy4th = require 'npy4th'
 local tds = require 'tds'
 
 function download(dirraw)
-   -- os.execute('git clone https://github.com/ryankiros/skip-thoughts.git')
    os.execute('mkdir -p ' .. dirraw)
    os.execute('wget http://www.cs.toronto.edu/~rkiros/models/dictionary.txt -P ' .. dirraw)
    os.execute('wget http://www.cs.toronto.edu/~rkiros/models/utable.npy -P ' .. dirraw)
    os.execute('wget http://www.cs.toronto.edu/~rkiros/models/btable.npy -P ' .. dirraw)
-   -- os.execute('wget http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz -P ' .. dirraw)
-   -- os.execute('wget http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz.pkl -P ' .. dirraw)
-   -- os.execute('wget http://www.cs.toronto.edu/~rkiros/models/bi_skip.npz -P ' .. dirraw)
-   -- os.execute('wget http://www.cs.toronto.edu/~rkiros/models/bi_skip.npz.pkl -P ' .. dirraw)
 end
 
 function load_dico(path)
@@ -40,7 +35,8 @@ end
 ---------------------------------------------
 
 local cmd = torch.CmdLine()
-cmd:option('-dirname', '/local/cadene/data/skip-thoughts', '')
+-- cmd:option('-dirname', '/local/cadene/data/skip-thoughts', '')
+cmd:option('-dirname', 'data', '')
 local config = cmd:parse(arg)
 
 ---------------------------------------------
@@ -71,7 +67,7 @@ path_bhashmap_t7 = paths.concat(dir_final, 'bi_hashmap.t7')
 
 if not paths.dirp(dir_raw) then
    download(dir_raw)
-   os.execute('python format_npy.py --dirname '..config.dirname)
+   os.execute('python theano/format_hashmaps.py --dirname '..config.dirname)
 end
 
 ---------------------------------------------
@@ -81,11 +77,6 @@ end
 local dico = load_dico(path_dico)
 local utable = npy4th.loadnpy(path_utable_npy)
 local btable = npy4th.loadnpy(path_btable_npy)
-
--- os.execute('mkdir -p '..dir_processed)
--- torch.save(path_dico_t7, dico)
--- torch.save(path_utable_t7, utable)
--- torch.save(path_btable_t7, btable)
 
 ---------------------------------------------
 -- Create hashmaps

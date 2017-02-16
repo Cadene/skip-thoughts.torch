@@ -1,6 +1,37 @@
-# Skip-Thoughts.torch
+# Skip-Thoughts.torch (Under construction)
 
-*Skip-Thoughts.torch* is a lightweight porting of skip-thought pretrained models from Theano to Torch7 using the beautiful [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
+*Skip-Thoughts.torch* is a lightweight porting of skip-thought pretrained models from Theano to Torch7 using the [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
+
+## Using the pretrained models in Torch7
+
+### Requirements
+
+Install the requirements:
+```
+$ luarocks install tds  # for the hashmap
+$ luarocks install rnn  # for the rnn utils
+$ luarocks install skipthoughts
+```
+
+### Quick example
+
+The skip-thoughts package enables you to download the pretrained torch7 hashmaps and GRUs compressed in a [zip file]() hosted on google drive, and also to cleanly set the pretrained skip-thoughts models. In fact, the initial vocabulary is made of 930,913 words (including the vocabulary of *word2vec*). That is why, it is preferable to create a `nn.LookupTableMaskZero` in order to map your smaller vocabulary to their corresponding vectors in an efficient and "fine-tunable" way. See an example bellow:
+
+```lua
+st = require 'skipthoughts'
+vocab = {'skipthoughts', 'are', 'cool'}
+inputs = torch.Tensor{{1,2,3}} -- batch x seq
+-- Download and load pretrained models on the fly
+uni_skip = st.createUniSkip(vocab, 'data')
+print(uni_skip:forward(inputs):size()) -- batch x 2400
+```
+
+For further examples please refer to [torch/example.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/torch/example.lua) or [torch/test.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/torch/test.lua)
+
+
+## Implementation details
+
+### General information
 
 The **uni-skip model** is made of:
 - a hashmap which, just as word2vec, map a word (from a dictionnary of 930,913 words) to its corresponding vector (620 dimensions),
@@ -16,35 +47,62 @@ The **combine-skip model** outputs the concatenation of both models output vecto
 
 Finally, once those pretrained models are set to take as input a sequence of words (notably by using the [nn.Sequencer](https://github.com/Element-Research/rnn#sequencer) and [nn.BiSequencer](https://github.com/Element-Research/rnn#bisequencer)), they can be used to compute a sequence of features of the same size (**seq2seq**) or a features vector (**seq2vec**).
 
-## How to use the pretrained models ?
+### GRUST
 
-Install the requirements:
+We provide a new GRU called [GRUST](https://github.com/Cadene/skip-thoughts.torch/blob/master/torch/GRUST.lua) for "Gated Recurrent Unit for Skip-Toughts".
+In fact, the authors of skip-thoughts models did not use the same implementation as in the `rnn` library.
+
+The implementation of GRUST corresponds to the following algorithm:
 ```
-$ luarocks install tds  # for the hashmap
-$ luarocks install rnn  # for the rnn utils
-$ git clone https://github.com/Cadene/grust.torch
-$ cd grust.torch
-$ luarocks make rocks/grust-scm-1.rockspec
+z[t] = σ(W[x->z]x[t] + W[s->z]s[t−1] + b[1->z])            (1)
+r[t] = σ(W[x->r]x[t] + W[s->r]s[t−1] + b[1->r])            (2)
+h[t] = tanh(W[x->h]x[t] + r[t] .* W[hr->c](s[t−1]) + b[1->h])  (3)
+s[t] = (1-z[t])h[t] + z[t]s[t-1]                           (4)
+```
+(with `.*` the element wise product)
+Note: It is also the same implementation of GRU from pytorch.
+
+Whereas, the implementation of GRU from the [rnn](https://github.com/Element-Research/rnn#rnn.GRU) package corresponds to the following algorithm:
+```
+z[t] = σ(W[x->z]x[t] + W[s->z]s[t−1] + b[1->z])            (1)
+r[t] = σ(W[x->r]x[t] + W[s->r]s[t−1] + b[1->r])            (2)
+h[t] = tanh(W[x->h]x[t] + W[hr->c](s[t−1] .* r[t]) + b[1->h])  (3)
+s[t] = (1-z[t])h[t] + z[t]s[t-1]                           (4)
+```
+(with `.*` the element wise product)
+
+### MaskZeroCopy
+
+We provide a new layer for the bi-skip and (thus) combine-skip models. In fact, the backward GRU may recieve inputs with right zero padding instead of the usual left zero padding. Thus, the MaskZeroCopy layer will copy the last outputs of the backward GRU when it sees vectors of zero, instead of replacing the actual content by zero (usual behaviour of MaskZero).
+
+```
+-- the input is "hello world" but our full model takes batchs of size 3 only
+-- thus we need to add a 0 on the left (left zero padding)
+input = {0, hello, world}
+reverse_input = {world, hello, 0}
+
+-- GRU forward in bi-skip model
+
+-- without MaskZero the final output will be features(0,hello,world)
+GRU_fw:forward(input) = {features(0), features(0,hello), features(0,hello,world)} 
+
+-- with MaskZero the final output will be features(hello,world)
+GRU_fw:forward(input) = {0, features(hello), features(hello,world)} 
+
+-- GRU backward in bi-skip model
+
+-- without MaskZero the final output will be features(world,hello,0)
+GRU_bw:forward(reverse_input) = {features(world), features(world,hello), features(world,hello,0)}
+
+-- with MaskZero the final output will be 0
+GRU_bw:forward(reverse_input) = {features(world), features(world,hello), 0}
+
+-- with MaskZeroCopy the final output will be features(hello)
+GRU_bw:forward(reverse_input) = {features(world), features(hello), features(hello)}
 ```
 
-/!\ We need [GRUST](https://github.com/Cadene/grust.torch) because the authors of skip-thoughts models did not used the same implementation (please refer to the README of grust.torch).
 
-We provide [skipthoughts.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/skipthoughts.lua), a library to easly use the pretrained skip-thoughts models.
-The latter enables you to download the pretrained torch7 hashmaps and GRUs compressed in a [zip file]() hosted on google drive, and also to cleanly set the pretrained skip-thoughts models. In fact, the initial vocabulary is made of 930,913 words (including the vocabulary of *word2vec*). That is why, it is preferable to create a `nn.LookupTableMaskZero` in order to map your smaller vocabulary to their corresponding vectors in an efficient and "fine-tunable" way. See an example bellow:
-
-```lua
-st = require 'skipthoughts'
-vocab = {'skipthoughts', 'are', 'cool'}
-inputs = torch.Tensor{{1,2,3}} -- batch x seq
-dirname = 'data'
--- Download and load pretrained models on the fly
-uni_skip = st.createUniSkip(vocab, 'dirname')
-print(uni_skip:forward(inputs):size()) -- batch x 2400
-```
-
-For further examples please refer to [test/test.lua](https://github.com/Cadene/skip-thoughts.torch/blob/master/test/test.lua).
-
-## How to recreate the torch7 files ?
+## (Optional) Recreating torch7 files
 
 Install the requirements:
 ```
@@ -57,12 +115,12 @@ $ pip install theano
 
 Create `uni_hashmap.t7` and `bi_hashmap.t7` (both of type [tds.Hash](https://github.com/torch/tds#d--tdshashtbl)) in `data/final`:
 ```
-$ th create_hashmaps.lua -dirname data
+$ th torch/create_hashmaps.lua -dirname data
 ```
 
-Create `uni_gru.t7`, `bi_gru_fwd.t7` and `bi_gru_bwd.t7` (every three of type [GRUST](https://github.com/Cadene/grust.torch)) in `data/final`:
+Create `uni_gru.t7`, `bi_gru_fwd.t7` and `bi_gru_bwd.t7` (every three of type [GRUST](https://github.com/Cadene/skip-thoughts.torch/blob/master/torch/GRUST.lua)) in `data/final`:
 ```
-$ th create_grus.lua -dirname data
+$ th torch/create_grus.lua -dirname data
 ```
 
 ## Acknowledgment

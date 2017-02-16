@@ -41,7 +41,8 @@ end
 ---------------------------------------------
 
 local cmd = torch.CmdLine()
-cmd:option('-dirname', '/local/cadene/data/skip-thoughts', '')
+--cmd:option('-dirname', '/local/cadene/data/skip-thoughts', '')
+cmd:option('-dirname', 'data', '')
 local config = cmd:parse(arg)
 
 local dir_raw = paths.concat(config.dirname, 'raw')
@@ -62,7 +63,7 @@ if not paths.dirp(dir_raw) or
    download(dir_raw)
 end
 if not paths.dirp(dir_interim) then
-   os.execute('python format_params.py --dirname '..config.dirname)
+   os.execute('python theano/dump_grus.py --dirname '..config.dirname)
 end
 
 ---------------------------------------------

@@ -15,36 +15,36 @@ import skipthoughts
 if __name__ == '__main__':
 
     model = skipthoughts.load_model()
-    os.system('mkdir -p test/data')
+    os.system('mkdir -p data/test')
 
     X = ['robots']
     features = skipthoughts.encode(model, X, use_norm=False, use_eos=False)
-    numpy.save('test/data/features_oneWord_normFalse_eosFalse.npy', features)
+    numpy.save('data/test/features_oneWord_normFalse_eosFalse.npy', features)
 
     X = ['robots']
     features = skipthoughts.encode(model, X, use_norm=True, use_eos=False)
-    numpy.save('test/data/features_oneWord_normTrue_eosFalse.npy', features)
+    numpy.save('data/test/features_oneWord_normTrue_eosFalse.npy', features)
 
     X = ['robots']
     features = skipthoughts.encode(model, X, use_norm=False, use_eos=True)
-    numpy.save('test/data/features_oneWord_normFalse_eosTrue.npy', features)
+    numpy.save('data/test/features_oneWord_normFalse_eosTrue.npy', features)
 
     X = ['robots']
     features = skipthoughts.encode(model, X, use_norm=True, use_eos=True)
-    numpy.save('test/data/features_oneWord_normTrue_eosTrue.npy', features)
+    numpy.save('data/test/features_oneWord_normTrue_eosTrue.npy', features)
 
     X = ['robots are cool']
     features = skipthoughts.encode(model, X, use_norm=False, use_eos=False)
-    numpy.save('test/data/features_normFalse_eosFalse.npy', features)
+    numpy.save('data/test/features_normFalse_eosFalse.npy', features)
 
     X = ['robots are cool']
     features = skipthoughts.encode(model, X, use_norm=True, use_eos=False)
-    numpy.save('test/data/features_normTrue_eosFalse.npy', features)
+    numpy.save('data/test/features_normTrue_eosFalse.npy', features)
 
     X = ['robots are cool']
     features = skipthoughts.encode(model, X, use_norm=False, use_eos=True)
-    numpy.save('test/data/features_normFalse_eosTrue.npy', features)
+    numpy.save('data/test/features_normFalse_eosTrue.npy', features)
 
     X = ['robots are cool']
     features = skipthoughts.encode(model, X, use_norm=True, use_eos=True)
-    numpy.save('test/data/features_normTrue_eosTrue.npy', features)
+    numpy.save('data/test/features_normTrue_eosTrue.npy', features)
