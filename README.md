@@ -10,7 +10,7 @@ Install the requirements:
 ```
 $ luarocks install tds  # for the hashmap
 $ luarocks install rnn  # for the rnn utils
-$ luarocks install skipthoughts
+$ luarocks install skip-thoughts
 ```
 
 ### Quick example
@@ -76,8 +76,10 @@ s[t] = (1-z[t])h[t] + z[t]s[t-1]                           (4)
 We provide a new layer for the bi-skip and (thus) combine-skip models. In fact, the backward GRU may recieve inputs with right zero padding instead of the usual left zero padding. Thus, the MaskZeroCopy layer will copy the last outputs of the backward GRU when it sees vectors of zero, instead of replacing the actual content by zero (usual behaviour of MaskZero).
 
 ```
--- the input is "hello world" but our full model takes batchs of size 3 only
--- thus we need to add a 0 on the left (left zero padding)
+-- The input is "hello world" but our full model takes batchs of size 3 only
+-- thus we need to add a 0 on the left (left zero padding).
+-- The ouput of the GRU forward must be the result of precessing hello and then word (= features(hello,word)).
+-- Wheras the output of the GRU backward must be the result of processing word, then hello (= features(word,hello)).
 input = {0, hello, world}
 reverse_input = {world, hello, 0}
 
@@ -98,7 +100,7 @@ GRU_bw:forward(reverse_input) = {features(world), features(world,hello), feature
 GRU_bw:forward(reverse_input) = {features(world), features(world,hello), 0}
 
 -- with MaskZeroCopy the final output will be features(hello)
-GRU_bw:forward(reverse_input) = {features(world), features(hello), features(hello)}
+GRU_bw:forward(reverse_input) = {features(world), features(word,hello), features(word,hello)}
 ```
 
 
