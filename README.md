@@ -6,7 +6,6 @@
 
 ### Requirements
 
-Install the requirements:
 ```
 $ luarocks install tds  # for the hashmap
 $ luarocks install rnn  # for the rnn utils
@@ -106,7 +105,8 @@ GRU_bw:forward(reverse_input) = {features(world), features(word,hello), features
 
 ## (Optional) Recreating torch7 files
 
-Install the requirements:
+### Requirements
+
 ```
 $ luarocks install tds
 $ luarocks install rnn
@@ -115,14 +115,24 @@ $ pip install numpy
 $ pip install theano
 ```
 
+### Hashmaps
+
 Create `uni_hashmap.t7` and `bi_hashmap.t7` (both of type [tds.Hash](https://github.com/torch/tds#d--tdshashtbl)) in `data/final`:
 ```
 $ th torch/create_hashmaps.lua -dirname data
 ```
 
+### GRUs
+
 Create `uni_gru.t7`, `bi_gru_fwd.t7` and `bi_gru_bwd.t7` (every three of type [GRUST](https://github.com/Cadene/skip-thoughts.torch/blob/master/torch/GRUST.lua)) in `data/final`:
 ```
 $ th torch/create_grus.lua -dirname data
+```
+
+### Test
+
+```
+$ th torch.test.lua -dirname data
 ```
 
 ## Acknowledgment
