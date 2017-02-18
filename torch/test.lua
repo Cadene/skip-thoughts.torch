@@ -1,5 +1,5 @@
 local npy4th = require 'npy4th'
-local skipthoughts = require '../skipthoughts'
+local skipthoughts = require 'skipthoughts'
 
 local cmd = torch.CmdLine()
 -- cmd:option('-dirname', '/local/cadene/data/skip-thoughts/final', '')

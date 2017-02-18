@@ -1,10 +1,9 @@
 require 'nn'
 require 'rnn'
-require 'GRUST'
+require 'skipthoughts.GRUST'
 local npy4th = require 'npy4th'
 
 function download(dirraw)
-   os.execute('git clone https://github.com/ryankiros/skip-thoughts.git')
    os.execute('mkdir -p ' .. dirraw)
    os.execute('wget http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz -P ' .. dirraw)
    os.execute('wget http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz.pkl -P ' .. dirraw)
@@ -63,7 +62,7 @@ if not paths.dirp(dir_raw) or
    download(dir_raw)
 end
 if not paths.dirp(dir_interim) then
-   os.execute('python theano/dump_grus.py --dirname '..config.dirname)
+   os.execute('python2 theano/dump_grus.py --dirname '..config.dirname)
 end
 
 ---------------------------------------------

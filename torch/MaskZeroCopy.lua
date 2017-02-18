@@ -1,5 +1,7 @@
 ------------------------------------------------------------------------
 --[[ MaskZeroCopy ]]--
+-- Author: Remi Cadene
+
 -- Decorator that zeroes the output rows of the encapsulated module
 -- for commensurate input rows which are tensors of zeros
 ------------------------------------------------------------------------

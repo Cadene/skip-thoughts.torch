@@ -1,7 +1,6 @@
 ------------------------------------------------------------------------
 --[[ GRUST ]]--
 -- Author: Remi Cadene
--- License: LICENSE.2nd.txt
 
 -- Gated Recurrent Units architecture for Skip Thoughts vectors
 --
@@ -10,7 +9,7 @@
 -- its own dropouts. First, try 0.25 for p as Gal (2016) suggested, presumably, 
 -- because of summations of two parts in GRUSTs connections. 
 ------------------------------------------------------------------------
-require 'MaskZeroCopy'
+require 'skipthoughts.MaskZeroCopy'
 
 local GRUST, parent = torch.class('nn.GRUST', 'nn.AbstractRecurrent')
 

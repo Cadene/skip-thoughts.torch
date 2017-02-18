@@ -1,24 +1,29 @@
 require 'nn'
 require 'rnn'
-require './GRUST'
+require 'skipthoughts.GRUST'
 require 'tds'
 -- local argcheck = require 'argcheck'
 
 local skipthoughts = {}
 
-skipthoughts.__download = function(dirname)
+skipthoughts.__download = function(dirname, mode)
    os.execute('mkdir -p '..dirname)
-   os.execute('wget http://uni_gru.t7 -P '..dirname)
-   os.execute('wget http://uni_hashmap.t7 -P '..dirname)
-   os.execute('wget http://bi_gru_fwd.t7 -P '..dirname)
-   os.execute('wget http://bi_gru_bwd.t7 -P '..dirname)
-   os.execute('wget http://bi_hashmap.t7 -P '..dirname)
+   if mode == 'uni' then
+      os.execute('wget http://webia.lip6.fr/~cadene/Downloads/skipthoughts/uni_gru.t7 -P '..dirname)
+      os.execute('wget http://webia.lip6.fr/~cadene/Downloads/skipthoughts/uni_hashmap.t7 -P '..dirname)
+   elseif mode == 'bi' then
+      os.execute('wget http://webia.lip6.fr/~cadene/Downloads/skipthoughts/bi_gru_fwd.t7 -P '..dirname)
+      os.execute('wget http://webia.lip6.fr/~cadene/Downloads/skipthoughts/bi_gru_bwd.t7 -P '..dirname)
+      os.execute('wget http://webia.lip6.fr/~cadene/Downloads/skipthoughts/bi_hashmap.t7 -P '..dirname)
+   else
+      assert(false, 'mode ('..mode..') must be equal to uni or bi')
+   end
 end
 
 skipthoughts.loadHashmap = function(dirname, mode)
    local mode = mode or 'uni'
    if not paths.dirp(dirname) then
-      skipthoughts.__download(dirname)
+      skipthoughts.__download(dirname, mode)
    end
    return torch.load(paths.concat(dirname, mode..'_hashmap.t7'))
 end
@@ -46,7 +51,6 @@ end
 -- Skip Thoughts seq2vec models 
 
 skipthoughts.createUniSkip = function(vocab, dirname, dropout, norm)
-
    local lookup = skipthoughts.createLookupTable(vocab, dirname, 'uni')
    local gru = torch.load(paths.concat(dirname, 'uni_gru.t7'))
 

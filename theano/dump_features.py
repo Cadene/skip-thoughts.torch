@@ -2,7 +2,7 @@ import os
 import numpy
 import sys
 
-skipthoughts_path = 'skip-thoughts'
+skipthoughts_path = 'theano/skip-thoughts'
 sys.path.append(skipthoughts_path)
 import skipthoughts
 

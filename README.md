@@ -1,6 +1,6 @@
 # Skip-Thoughts.torch (Under construction)
 
-*Skip-Thoughts.torch* is a lightweight porting of skip-thought pretrained models from Theano to Torch7 using the [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
+*Skip-Thoughts.torch* is a lightweight porting of [skip-thought pretrained models from Theano](https://github.com/ryankiros/skip-thoughts) to Torch7 using the [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
 
 ## Using the pretrained models in Torch7
 
@@ -9,7 +9,7 @@
 ```
 $ luarocks install tds  # for the hashmap
 $ luarocks install rnn  # for the rnn utils
-$ luarocks install skip-thoughts
+$ luarocks install --server=http://luarocks.org/dev skipthoughts
 ```
 
 ### Quick example
@@ -63,10 +63,7 @@ Note: It is also the same implementation of GRU from pytorch.
 
 Whereas, the implementation of GRU from the [rnn](https://github.com/Element-Research/rnn#rnn.GRU) package corresponds to the following algorithm:
 ```
-z[t] = σ(W[x->z]x[t] + W[s->z]s[t−1] + b[1->z])            (1)
-r[t] = σ(W[x->r]x[t] + W[s->r]s[t−1] + b[1->r])            (2)
 h[t] = tanh(W[x->h]x[t] + W[hr->c](s[t−1] .* r[t]) + b[1->h])  (3)
-s[t] = (1-z[t])h[t] + z[t]s[t-1]                           (4)
 ```
 (with `.*` the element wise product)
 
@@ -107,12 +104,16 @@ GRU_bw:forward(reverse_input) = {features(world), features(word,hello), features
 
 ### Requirements
 
+Lua/Torch7 and Python2.
+
 ```
 $ luarocks install tds
 $ luarocks install rnn
 $ luarocks install npy4th
 $ pip install numpy
 $ pip install theano
+$ git clone https://github.com/Cadene/skip-thoughts.torch.git
+$ cd skip-thoughts.torch
 ```
 
 ### Hashmaps
@@ -132,7 +133,7 @@ $ th torch/create_grus.lua -dirname data
 ### Test
 
 ```
-$ th torch.test.lua -dirname data
+$ th torch/test.lua -dirname data
 ```
 
 ## Acknowledgment
