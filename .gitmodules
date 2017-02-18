@@ -1,0 +1,3 @@
+[submodule "skip-thoughts"]
+	path = theano/skip-thoughts
+	url = https://github.com/Cadene/skip-thoughts
