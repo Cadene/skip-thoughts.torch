@@ -114,6 +114,7 @@ $ pip install numpy
 $ pip install theano
 $ git clone https://github.com/Cadene/skip-thoughts.torch.git
 $ cd skip-thoughts.torch
+$ git submodule update --init --recursive # download my fork in theano/skip-thoughts
 ```
 
 ### Hashmaps
