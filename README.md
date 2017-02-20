@@ -1,4 +1,4 @@
-# Skip-Thoughts.torch (Under construction)
+# Skip-Thoughts.torch
 
 *Skip-Thoughts.torch* is a lightweight porting of [skip-thought pretrained models from Theano](https://github.com/ryankiros/skip-thoughts) to Torch7 using the [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
 
