@@ -2,6 +2,63 @@
 
 *Skip-Thoughts.torch* is a lightweight porting of [skip-thought pretrained models from Theano](https://github.com/ryankiros/skip-thoughts) to Torch7 using the [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
 
+## Using the pretrained models in PyTorch
+
+### Requirements
+
+- python3 (python2 not tested)
+- torch
+- numpy
+
+```
+$ git clone --recursive http://github.com/Cadene/skip-thoughts.torch
+```
+
+### Available pretrained models
+
+#### UniSkip
+
+It uses the `nn.GRU` layer from torch with the cudnn backend. It is the fastest implementation, but the dropout is sampled after each time-step in the cudnn implementation... (equals bad regularization)
+
+#### DropUniSkip
+
+It uses the `nn.GRUCell` layer from torch with the cudnn backend. It is slightly slower than UniSkip, however the dropout is sampled once for all time-steps in a sequence (good regularization).
+
+#### BayesianUniSkip
+
+It uses a custom GRU layer with a torch backend. It is at least two times slower than UniSkip, however the dropout is sampled once for all time-steps for each Linear (best regularization).
+
+#### BiSkip
+
+Equivalent to UniSkip, but with a bi-sequential GRU.
+
+### Quick example
+
+```python
+import torch
+from torch.autograd import Variable
+import sys
+sys.path.append('skip-thoughts.torch/pytorch')
+from skipthoughts import UniSkip
+
+dir_st = 'data/skip-thoughts'
+vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
+uniskip = UniSkip(dir_st, vocab)
+
+input = Variable(torch.LongTensor([
+    [1,2,3,4,0], # robots are very cool 0
+    [6,2,3,4,5]  # bidibu are very cool <eos>
+])) # <eos> token is optional
+print(input.size()) # batch_size x seq_len
+
+output_seq2vec = uniskip(input, lengths=[4,5])
+print(output_seq2vec.size()) # batch_size x 2400
+
+output_seq2seq = uniskip(input)
+print(output_seq2seq.size()) # batch_size x seq_len x 2400
+```
+
+
 ## Using the pretrained models in Torch7
 
 ### Requirements
@@ -139,7 +196,7 @@ $ th torch/test.lua -dirname data
 
 ## Acknowledgment
 
-Beside the wall deep learning community, we would like to specifically thanks:
+Beside the whole deep learning community, we would like to specifically thanks:
 - the authors of the original [paper](https://arxiv.org/abs/1506.06726) and [implementation](https://github.com/ryankiros/skip-thoughts),
 - the authors of DPPnet who first propose a [porting](https://github.com/HyeonwooNoh/DPPnet),
 - the authors of Multi Modal Residual Learning who also propose a [porting](https://github.com/jnhwkim/nips-mrn-vqa).

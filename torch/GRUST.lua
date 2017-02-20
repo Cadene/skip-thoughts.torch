@@ -242,8 +242,8 @@ end
 -- instead of the usual left-zero-padding.
 -- When a zero is encountered, the lastOutput are copied.
 -- maskZeroCopy is made for the backward RNN of a bi-GRU only.
-function GRUST:maskZeroCopy(nInputDim)
-   self.recurrentModule = nn.MaskZeroCopy(self.recurrentModule, nInputDim, true)
+function GRUST:maskZeroCopy(nInputDim, backward)
+   self.recurrentModule = nn.MaskZeroCopy(self.recurrentModule, nInputDim, true, backward)
    self.sharedClones = {self.recurrentModule}
    self.modules[1] = self.recurrentModule
    return self

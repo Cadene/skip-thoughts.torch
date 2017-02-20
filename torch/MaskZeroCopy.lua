@@ -7,7 +7,7 @@
 ------------------------------------------------------------------------
 local MaskZeroCopy, parent = torch.class("nn.MaskZeroCopy", "nn.Decorator")
 
-function MaskZeroCopy:__init(module, nInputDim, silent)
+function MaskZeroCopy:__init(module, nInputDim, silent, backward)
    parent.__init(self, module)
    assert(torch.isTypeOf(module, 'nn.Module'))
    if torch.isTypeOf(module, 'nn.AbstractRecurrent') and not silent then
@@ -19,6 +19,11 @@ function MaskZeroCopy:__init(module, nInputDim, silent)
    assert(torch.type(nInputDim) == 'number', 'Expecting nInputDim number at arg 1')
    self.nInputDim = nInputDim
    self._last_output = nil
+   if self.backward then
+      print("Warning : Backward is activated in MaskZeroCopy")
+   else
+      assert(false, 'not implemented')
+   end
 end
 
 function MaskZeroCopy:recursiveGetFirst(input)
@@ -32,6 +37,8 @@ end
 
 function MaskZeroCopy:recursiveMask(output, input, mask)
    local lastOutput = output:clone()
+
+   --print(lastOutput:size())
 
    if torch.type(input) == 'table' then
       -- output = torch.type(output) == 'table' and output or {}
@@ -54,9 +61,36 @@ function MaskZeroCopy:recursiveMask(output, input, mask)
       output:resizeAs(input):copy(input)
 
       -- if not first word in sequence
-      if lastOutput:dim()~=0 then
+      if lastOutput:dim() ~=0 then
          output:maskedCopy(zeroMask, lastOutput)
       end
+   end
+
+   return output
+end
+
+function MaskZeroCopy:recursiveMaskBackward(output, input, mask)
+
+   if torch.type(input) == 'table' then
+      -- output = torch.type(output) == 'table' and output or {}
+      -- for k,v in ipairs(input) do
+      --    output[k] = self:recursiveMask(output[k], v, mask)
+      -- end
+      assert(false, 'Not available for table input')
+   else
+      assert(torch.isTensor(input))
+      output = torch.isTensor(output) and output or input.new()
+      
+      -- make sure mask has the same dimension as the input tensor
+      local inputSize = input:size():fill(1)
+      if self.batchmode then
+         inputSize[1] = input:size(1)
+      end
+      mask:resize(inputSize)
+      -- build mask
+      local zeroMask = mask:expandAs(input)
+      output:resizeAs(input):copy(input)
+      output:maskedFill(zeroMask, 0)
    end
 
    return output
@@ -95,7 +129,11 @@ end
 
 function MaskZeroCopy:updateGradInput(input, gradOutput)
    -- zero gradOutputs before backpropagating through decorated module
-   self.gradOutput = self:recursiveMask(self.gradOutput, gradOutput, self.zeroMask)
+   if self.backward then
+      self.gradOutput = self:recursiveMaskBackward(self.gradOutput, gradOutput, self.zeroMask)
+   else
+      self.gradOutput = self:recursiveMask(self.gradOutput, gradOutput, self.zeroMask)
+   end
 
    self.gradInput = self.modules[1]:updateGradInput(input, self.gradOutput)
    return self.gradInput

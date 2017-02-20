@@ -25,7 +25,7 @@ if __name__ == '__main__':
     dir_raw = os.path.join(args.dirname, 'raw')
     path_utable = os.path.join(dir_raw, 'utable.npy')
     path_btable = os.path.join(dir_raw, 'btable.npy')
-
+    
     dir_interim = os.path.join(args.dirname, 'interim')
     path_utable_npy = os.path.join(dir_interim, 'utable.npy')
     path_btable_npy = os.path.join(dir_interim, 'btable.npy')

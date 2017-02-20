@@ -43,21 +43,19 @@ local config = cmd:parse(arg)
 -- Path to files
 ---------------------------------------------
 
-dir_raw = paths.concat(config.dirname, 'raw')
-path_dico = paths.concat(dir_raw, 'dictionary.txt')
--- path_utable = paths.concat(dir_raw, 'utable.npy')
--- path_utable = paths.concat(dir_raw, 'btable.npy')
+dir_raw          = paths.concat(config.dirname, 'raw')
+path_dico        = paths.concat(dir_raw, 'dictionary.txt')
 
-dir_interim = paths.concat(config.dirname, 'interim')
-path_utable_npy = paths.concat(dir_interim, 'utable.npy')
-path_btable_npy = paths.concat(dir_interim, 'btable.npy')
+dir_interim      = paths.concat(config.dirname, 'interim')
+path_utable_npy  = paths.concat(dir_interim, 'utable.npy')
+path_btable_npy  = paths.concat(dir_interim, 'btable.npy')
 
-dir_processed = paths.concat(config.dirname, 'processed')
-path_dico_t7 = paths.concat(dir_processed, 'dictionary.t7')
-path_utable_t7 = paths.concat(dir_processed, 'utable.t7')
-path_btable_t7 = paths.concat(dir_processed, 'btable.t7')
+dir_processed    = paths.concat(config.dirname, 'processed')
+path_dico_t7     = paths.concat(dir_processed, 'dictionary.t7')
+path_utable_t7   = paths.concat(dir_processed, 'utable.t7')
+path_btable_t7   = paths.concat(dir_processed, 'btable.t7')
 
-dir_final = paths.concat(config.dirname, 'final')
+dir_final        = paths.concat(config.dirname, 'final')
 path_uhashmap_t7 = paths.concat(dir_final, 'uni_hashmap.t7')
 path_bhashmap_t7 = paths.concat(dir_final, 'bi_hashmap.t7')
 
@@ -67,7 +65,7 @@ path_bhashmap_t7 = paths.concat(dir_final, 'bi_hashmap.t7')
 
 if not paths.dirp(dir_raw) then
    download(dir_raw)
-   os.execute('python theano/format_hashmaps.py --dirname '..config.dirname)
+   os.execute('python theano/dump_hashmaps.py --dirname '..config.dirname)
 end
 
 ---------------------------------------------
