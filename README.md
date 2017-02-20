@@ -139,7 +139,7 @@ $ th torch/test.lua -dirname data
 
 ## Acknowledgment
 
-Beside the wall deep learning community, we would like to specifically thanks:
+Beside the whole deep learning community, we would like to specifically thanks:
 - the authors of the original [paper](https://arxiv.org/abs/1506.06726) and [implementation](https://github.com/ryankiros/skip-thoughts),
 - the authors of DPPnet who first propose a [porting](https://github.com/HyeonwooNoh/DPPnet),
 - the authors of Multi Modal Residual Learning who also propose a [porting](https://github.com/jnhwkim/nips-mrn-vqa).
