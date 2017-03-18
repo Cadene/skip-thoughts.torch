@@ -21,11 +21,11 @@ skipthoughts.__download = function(dirname, mode)
 end
 
 skipthoughts.loadHashmap = function(dirname, mode)
-   local mode = mode or 'uni'
-   if not paths.dirp(dirname) then
+   local path_hashmap = paths.concat(dirname, mode..'_hashmap.t7')
+   if not paths.filep(path_hashmap) then
       skipthoughts.__download(dirname, mode)
    end
-   return torch.load(paths.concat(dirname, mode..'_hashmap.t7'))
+   return torch.load(path_hashmap)
 end
 
 skipthoughts.createLookupTable = function(vocab, dirname, mode)
@@ -84,7 +84,7 @@ skipthoughts.createBiSkip = function(vocab, dirname, dropout, norm)
       gru_bwd = addDropout(gru_bwd, dropout)
    end
    gru_fwd:trimZero(1)
-   gru_bwd:maskZeroCopy(1)
+   gru_bwd:maskZeroCopy(1, true)
 
    local bi_skip = nn.Sequential()
    bi_skip:add(lookup)

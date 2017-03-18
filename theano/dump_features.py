@@ -6,15 +6,9 @@ skipthoughts_path = 'theano/skip-thoughts'
 sys.path.append(skipthoughts_path)
 import skipthoughts
 
-# You will have to change path_to_models and path_to_tables variables
-# in the ./skip-thoughts directory containing the git clone
-# of the original skip-thought repositery.
-# You will have to change them to `data/skip-thoughts/raw/` or to
-# the directory you choosed to download the initial (raw) data.
-
 if __name__ == '__main__':
 
-    model = skipthoughts.load_model()
+    model = skipthoughts.load_model(dirname='data/raw', fname_umodel='uni_skip.npz', fname_bmodel='bi_skip.npz')
     os.system('mkdir -p data/test')
 
     X = ['robots']
