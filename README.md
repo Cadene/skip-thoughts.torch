@@ -2,6 +2,45 @@
 
 *Skip-Thoughts.torch* is a lightweight porting of [skip-thought pretrained models from Theano](https://github.com/ryankiros/skip-thoughts) to Torch7 using the [rnn](https://github.com/Element-Research/rnn) library of Element-Research and [npy4th](https://github.com/htwaijry/npy4th).
 
+## Using the pretrained models in PyTorch
+
+### Requirements
+
+- python3 (python2 not tested)
+- torch
+- numpy
+
+```
+$ git clone http://github.com/Cadene/skip-thoughts.torch
+```
+
+### Quick example
+
+```python
+import torch
+from torch.autograd import Variable
+import sys
+sys.path.append('skip-thoughts.torch/pytorch')
+from skipthoughts import UniSkip
+
+dir_st = '/local/cadene/data/skip-thoughts'
+vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
+uniskip = UniSkip(dir_st, vocab)
+
+input = Variable(torch.LongTensor([
+    [1,2,3,4,0], # robots are very cool 0
+    [6,2,3,4,5]  # bidibu are very cool <eos>
+])) # <eos> token is optional
+print(input.size()) # batch_size x seq_len
+
+output_seq2vec = uniskip(input, lengths=[4,5])
+print(output_seq2vec.size()) # batch_size x 2400
+
+output_seq2seq = uniskip(input)
+print(output_seq2seq.size()) # batch_size x seq_len x 2400
+```
+
+
 ## Using the pretrained models in Torch7
 
 ### Requirements

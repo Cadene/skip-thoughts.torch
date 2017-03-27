@@ -2,3 +2,4 @@ theano/skip-thoughts/*
 ._.DS_Store
 .DS_Store
 data/*
+pytorch/__pycache__/*
