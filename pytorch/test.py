@@ -94,7 +94,7 @@ if __name__ == '__main__':
    vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
 
    path_uniskip = os.path.join(dir_st, 'uniskip.pth')
-   if os.path.exists(path_uniskip):
+   if False and os.path.exists(path_uniskip):
       uniskip = torch.load(path_uniskip)
       uniskip.eval()
    else:
@@ -105,4 +105,10 @@ if __name__ == '__main__':
    if not os.path.exists(dir_test):
       os.system('python2 theano/dump_features.py')
 
+   print('With lengths given')
+   Tester.launch_tests(uniskip)
+
+   print('With lengths processed')
+   uniskip.zero_grad()
+   uniskip.process_lengths = True
    Tester.launch_tests(uniskip)
