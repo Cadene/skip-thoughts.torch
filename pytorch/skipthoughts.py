@@ -13,12 +13,13 @@ urls['uni_skip']   = 'http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz'
 
 class UniSkip(nn.Module):
 
-    def __init__(self, dir_st, vocab, process_lengths=False, dropout=0):
+    def __init__(self, dir_st, vocab, process_lengths=False, dropout=0, save=True):
         super(UniSkip, self).__init__()
         self.dir_st  = dir_st
         self.vocab   = vocab
         self.process_lengths = process_lengths
         self.dropout = dropout
+        self.save    = save
         # Modules
         self.embedding = self._load_embedding() 
         self.gru       = self._load_gru()
@@ -55,15 +56,20 @@ class UniSkip(nn.Module):
     def _make_emb_state_dict(self, dictionary, parameters):
         weight = torch.zeros(len(self.vocab)+1, 620) # first dim = zeros -> +1
         unknown_params = parameters[dictionary['UNK']]
+        nb_unknown = 0
         for id_weight, word in enumerate(self.vocab):
             if word in dictionary:
                 id_params = dictionary[word]
                 params = parameters[id_params]
             else:
-                print('Warning: word `{}` not in dictionary'.format(word))
+                #print('Warning: word `{}` not in dictionary'.format(word))
                 params = unknown_params
+                nb_unknown += 1
             weight[id_weight+1] = torch.from_numpy(params)
         state_dict = OrderedDict({'weight':weight})
+        if nb_unknown > 0:
+            print('Warning: {}/{} words are not in dictionary, thus set UNK'
+                  .format(nb_unknown, len(dictionary)))
         return state_dict
  
     def _make_gru_state_dict(self, p):
@@ -81,13 +87,24 @@ class UniSkip(nn.Module):
         return s
  
     def _load_embedding(self):
-        self.embedding = nn.Embedding(num_embeddings=len(self.vocab)+1,
+        if self.save:
+            import hashlib
+            import pickle
+            # http://stackoverflow.com/questions/20416468/fastest-way-to-get-a-hash-from-a-list-in-python
+            hash_id = hashlib.sha256(pickle.dumps(self.vocab, -1)).hexdigest()
+            path = '/tmp/uniskip_embedding_'+str(hash_id)+'.pth'
+        if self.save and os.path.exists(path):
+            self.embedding = torch.load(path)
+        else:
+            self.embedding = nn.Embedding(num_embeddings=len(self.vocab)+1,
                                       embedding_dim=620,
                                       padding_idx=0) # -> first_dim = zeros
-        dictionary = self._load_dictionary()
-        parameters = self._load_emb_params()
-        state_dict = self._make_emb_state_dict(dictionary, parameters)
-        self.embedding.load_state_dict(state_dict)
+            dictionary = self._load_dictionary()
+            parameters = self._load_emb_params()
+            state_dict = self._make_emb_state_dict(dictionary, parameters)
+            self.embedding.load_state_dict(state_dict)
+            if self.save:
+                torch.save(self.embedding, path)
         return self.embedding
  
     def _load_gru(self):
