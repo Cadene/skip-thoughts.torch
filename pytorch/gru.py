@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from sequential_dropout import SequentialDropout
+from dropout import SequentialDropout
 
 class AbstractGRUCell(nn.Module):
 
@@ -30,7 +30,8 @@ class GRUCell(AbstractGRUCell):
 
     def __init__(self, input_size, hidden_size,
                        bias_ih=True, bias_hh=False):
-        super(AbstractGRUCell, self).__init__()
+        super(GRUCell, self).__init__(input_size, hidden_size,
+                                      bias_ih, bias_hh)
 
     def forward(self, x, hx=None):
         if hx is None:
@@ -58,6 +59,14 @@ class BayesianGRUCell(AbstractGRUCell):
         self.drop_hr = SequentialDropout(p=dropout)
         self.drop_hi = SequentialDropout(p=dropout)
         self.drop_hn = SequentialDropout(p=dropout)
+
+    def end_of_sequence(self):
+        self.drop_ir.end_of_sequence()
+        self.drop_ii.end_of_sequence()
+        self.drop_in.end_of_sequence()
+        self.drop_hr.end_of_sequence()
+        self.drop_hi.end_of_sequence()
+        self.drop_hn.end_of_sequence()
 
     def forward(self, x, hx=None):
         if hx is None:
@@ -89,11 +98,13 @@ class AbstractGRU(nn.Module):
     def _load_gru_cell(self):
         raise NotImplementedError
 
-    def forward(self, x, hx=None):
+    def forward(self, x, hx=None, max_length=None):
         batch_size = x.size(0)
         seq_length = x.size(1)
+        if max_length is None:
+            max_length = seq_length
         output = []
-        for i in range(seq_length):
+        for i in range(max_length):
             hx = self.gru_cell(x[:,i,:], hx=hx)
             output.append(hx.view(batch_size, 1, self.hidden_size))
         output = torch.cat(output, 1)
@@ -129,4 +140,17 @@ class BayesianGRU(AbstractGRU):
     def set_dropout(self, dropout):
         self.dropout = dropout
         self.gru_cell.set_dropout(dropout)
+
+    def forward(self, x, hx=None, max_length=None):
+        batch_size = x.size(0)
+        seq_length = x.size(1)
+        if max_length is None:
+            max_length = seq_length
+        output = []
+        for i in range(max_length):
+            hx = self.gru_cell(x[:,i,:], hx=hx)
+            output.append(hx.view(batch_size, 1, self.hidden_size))
+        self.gru_cell.end_of_sequence()
+        output = torch.cat(output, 1)
+        return output, hx
 

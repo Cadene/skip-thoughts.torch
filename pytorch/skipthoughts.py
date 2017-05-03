@@ -10,7 +10,7 @@ from torch.autograd import Variable
 from collections import OrderedDict
 
 from gru import BayesianGRU, GRU
-from sequential_dropout import SequentialDropout
+from dropout import EmbeddingDropout
 
 urls = {}
 urls['dictionary'] = 'http://www.cs.toronto.edu/~rkiros/models/dictionary.txt'
@@ -73,12 +73,13 @@ class AbstractUniSkip(nn.Module):
             # http://stackoverflow.com/questions/20416468/fastest-way-to-get-a-hash-from-a-list-in-python
             hash_id = hashlib.sha256(pickle.dumps(self.vocab, -1)).hexdigest()
             path = '/tmp/uniskip_embedding_'+str(hash_id)+'.pth'
-        if self.save and os.path.exists(path):
+        if False and self.save and os.path.exists(path):
             self.embedding = torch.load(path)
         else:
             self.embedding = nn.Embedding(num_embeddings=len(self.vocab)+1,
                                           embedding_dim=620,
-                                          padding_idx=0) # -> first_dim = zeros
+                                          padding_idx=0,
+                                          sparse=False) # -> first_dim = zeros
             dictionary = self._load_dictionary()
             parameters = self._load_emb_params()
             state_dict = self._make_emb_state_dict(dictionary, parameters)
@@ -105,8 +106,19 @@ class AbstractUniSkip(nn.Module):
             print('Warning: {}/{} words are not in dictionary, thus set UNK'
                   .format(nb_unknown, len(dictionary)))
         return state_dict
- 
-    def _select_last(self, input, lengths):
+
+    def _select_last(self, x, lengths):
+        batch_size = x.size(0)
+        seq_length = x.size(1)
+        mask = x.data.new().resize_as_(x.data).fill_(0)
+        for i in range(batch_size):
+            mask[i][lengths[i]-1].fill_(1)
+        mask = Variable(mask)
+        x = x.mul(mask)
+        x = x.sum(1).view(batch_size, 2400)
+        return x
+
+    def _select_last_old(self, input, lengths):
         batch_size = input.size(0)
         x = []
         for i in range(batch_size):
@@ -261,19 +273,90 @@ class BayesianUniSkip(AbstractUniSkip):
     def forward(self, input, lengths=None):
         if lengths is None:
             lengths = self._process_lengths(input)
+        max_length = max(lengths)
         x = self.embedding(input)
-        x, hn = self.rnn(x) # seq2seq
+        x, hn = self.rnn(x, max_length=max_length) # seq2seq
         if lengths:
             x = self._select_last(x, lengths)
         return x
 
 
- 
+class BayesianUniSkipAvg(BayesianUniSkip):
+
+    def __init__(self, dir_st, vocab, save=True, dropout=0.25):
+        super(BayesianUniSkipAvg, self).__init__(dir_st, vocab, save, dropout)
+
+    def _fill_zero_end_of_seq(self, x, lengths):
+        mask = x.data.new().resize_as_(x.data).fill_(0)
+        batch_size = x.size(0)
+        seq_length = x.size(1)
+        for i in range(batch_size):
+            for j in range(lengths[i]):
+                if mask.dim() == 3:
+                    mask[i][j].fill_(1)
+                elif mask.dim() == 2:
+                    mask[i][j] = 1
+        mask = Variable(mask)
+        return x.mul(mask)
+
+    def forward(self, input, lengths=None):
+        if lengths is None:
+            lengths = self._process_lengths(input)
+        x = self.embedding(input)
+        x, hn = self.rnn(x) # seq2seq
+        x = self._fill_zero_end_of_seq(x, lengths)
+        x = x.sum(1).squeeze()
+        batch_size = x.size(0)
+        # to verify if possible
+        for i in range(batch_size):
+            x[i].div_(lengths[i])
+        return x
+
+
+class BayesianUniSkipAtt(BayesianUniSkipAvg):
+
+    def __init__(self, dir_st, vocab, save=True, dropout=0.25):
+        super(BayesianUniSkipAtt, self).__init__(dir_st, vocab, save, dropout)
+        #self.scorer = nn.Conv1d(2400, 1, 1, stride=1, padding=0)
+        self.scorer = nn.Linear(2400, 1)
+
+    def _process_scores(self, x, lengths):
+        seq_length = x.size(1)
+        # to optimize with conv1d
+        scores = []
+        for i in range(seq_length):
+            scores.append(self.scorer(x[:,i]))
+        scores = torch.cat(scores, 1)
+        scores = self._fill_zero_end_of_seq(scores, lengths)
+        # to verify if possible
+        scores_sm = []
+        for i in range(seq_length):
+            scores_sm.append(F.softmax(scores[:,i]))
+        scores = torch.stack(scores_sm, dim=1)
+        return scores
+
+    def forward(self, input, lengths=None):
+        batch_size = input.size(0)
+        seq_length = input.size(1)
+        if lengths is None:
+            lengths = self._process_lengths(input)
+        x = self.embedding(input)
+        x, hn = self.rnn(x) # seq2seq        
+        scores = self._process_scores(x, lengths)
+        scores = scores.view(batch_size, seq_length, 1)
+        scores = scores.expand_as(x)
+        x = x.mul(scores)
+        x = x.sum(1).squeeze()
+        return x
+
+
 if __name__ == '__main__':
     dir_st = '/local/cadene/data/skip-thoughts'
     vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
-    uniskip = BayesianUniSkip(dir_st, vocab)
- 
+    #uniskip = BayesianUniSkip(dir_st, vocab)
+    #uniskip = BayesianUniSkipAvg(dir_st, vocab)
+    uniskip = BayesianUniSkipAtt(dir_st, vocab)
+
     # batch_size x seq_len
     input = Variable(torch.LongTensor([
         [1,2,3,4,5,0,0],
@@ -285,7 +368,7 @@ if __name__ == '__main__':
 
     # batch_size x 2400
     output_seq2vec = uniskip(input, lengths=[5,7,7])
-    print(output_seq2vec.sum())
+    print(output_seq2vec)
 
     # batch_size x 2400
     output_seq2vec2 = uniskip(input)
