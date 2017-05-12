@@ -10,36 +10,37 @@ from torch.autograd import Variable
 from collections import OrderedDict
 
 from gru import BayesianGRU, GRU
-from dropout import EmbeddingDropout
+from dropout import EmbeddingDropout, SequentialDropout
 
 urls = {}
 urls['dictionary'] = 'http://www.cs.toronto.edu/~rkiros/models/dictionary.txt'
 urls['utable']     = 'http://www.cs.toronto.edu/~rkiros/models/utable.npy'
 urls['uni_skip']   = 'http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz'
+urls['btable']     = 'http://www.cs.toronto.edu/~rkiros/models/btable.npy'
+urls['bi_skip']    = 'http://www.cs.toronto.edu/~rkiros/models/bi_skip.npz'
+    
 
+class AbstractSkipThoughts(nn.Module):
 
-# class AbstractSkipthoughts(nn.Module):
-
-#     def __init__(self, dir_st, vocab):
-#         super(AbstractSkipthoughts, self).__init__()
-#         self.dir_st = dir_st
-#         self.vocab = vocab
-#         # Modules
-#         import ipdb; ipdb.set_trace()
-        
-
-
-class AbstractUniSkip(nn.Module):
-
-    def __init__(self, dir_st, vocab, save=True, dropout=0):
-        super(AbstractUniSkip, self).__init__()
+    def __init__(self, dir_st, vocab, save=False, dropout=0, fixed_emb=False):
+        super(AbstractSkipThoughts, self).__init__()
         self.dir_st = dir_st
         self.vocab = vocab
         self.save = save
         self.dropout = dropout
+        self.fixed_emb = fixed_emb
+        # Module
         self.embedding = self._load_embedding()
+        if fixed_emb:
+            self.embedding.weight.requires_grad = False
         self.rnn = self._load_rnn()
- 
+
+    def _get_table_name(self):
+        raise NotImplementedError
+
+    def _get_skip_name(self):
+        raise NotImplementedError
+
     def _load_dictionary(self):
         path_dico = os.path.join(self.dir_st, 'dictionary.txt')
         if not os.path.exists(path_dico):
@@ -49,23 +50,25 @@ class AbstractUniSkip(nn.Module):
             dico_list = handle.readlines()
         dico = {word.strip():idx for idx,word in enumerate(dico_list)}
         return dico
- 
+
     def _load_emb_params(self):
-        path_params = os.path.join(self.dir_st, 'utable.npy')
+        table_name = self._get_table_name()
+        path_params = os.path.join(self.dir_st, table_name+'.npy')
         if not os.path.exists(path_params):
             os.system('mkdir -p ' + self.dir_st)
-            os.system('wget {} -P {}'.format(urls['utable'], self.dir_st))
+            os.system('wget {} -P {}'.format(urls[table_name], self.dir_st))
         params = numpy.load(path_params, encoding='latin1') # to load from python2
         return params
  
     def _load_rnn_params(self):
-        path_params = os.path.join(self.dir_st, 'uni_skip.npz')
+        skip_name = self._get_skip_name()
+        path_params = os.path.join(self.dir_st, skip_name+'.npz')
         if not os.path.exists(path_params):
             os.system('mkdir -p ' + self.dir_st)
-            os.system('wget {} -P {}'.format(urls['uni_skip'], self.dir_st))
+            os.system('wget {} -P {}'.format(urls[skip_name], self.dir_st))
         params = numpy.load(path_params, encoding='latin1') # to load from python2
         return params
- 
+
     def _load_embedding(self):
         if self.save:
             import hashlib
@@ -73,13 +76,13 @@ class AbstractUniSkip(nn.Module):
             # http://stackoverflow.com/questions/20416468/fastest-way-to-get-a-hash-from-a-list-in-python
             hash_id = hashlib.sha256(pickle.dumps(self.vocab, -1)).hexdigest()
             path = '/tmp/uniskip_embedding_'+str(hash_id)+'.pth'
-        if False and self.save and os.path.exists(path):
+        if self.save and os.path.exists(path):
             self.embedding = torch.load(path)
         else:
-            self.embedding = nn.Embedding(num_embeddings=len(self.vocab)+1,
+            self.embedding = nn.Embedding(num_embeddings=len(self.vocab) + 1,
                                           embedding_dim=620,
-                                          padding_idx=0,
-                                          sparse=False) # -> first_dim = zeros
+                                          padding_idx=0, # -> first_dim = zeros
+                                          sparse=False) 
             dictionary = self._load_dictionary()
             parameters = self._load_emb_params()
             state_dict = self._make_emb_state_dict(dictionary, parameters)
@@ -139,12 +142,28 @@ class AbstractUniSkip(nn.Module):
 
     def forward(self, input, lengths=None):
         raise NotImplementedError
-    
+
+
+###################################################################################
+# UniSkip
+###################################################################################
+
+class AbstractUniSkip(AbstractSkipThoughts):
+
+    def __init__(self, dir_st, vocab, save=False, dropout=0, fixed_emb=False):
+        super(AbstractUniSkip, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
+
+    def _get_table_name(self):
+        return 'utable'
+
+    def _get_skip_name(self):
+        return 'uni_skip'
+
 
 class UniSkip(AbstractUniSkip):
 
-    def __init__(self, dir_st, vocab, save=True, dropout=0.25):
-        super(UniSkip, self).__init__(dir_st, vocab, save, dropout)
+    def __init__(self, dir_st, vocab, save=False, dropout=0.25, fixed_emb=False):
+        super(UniSkip, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
         # Remove bias_ih_l0 (== zero all the time)
         # del self.gru._parameters['bias_hh_l0']
         # del self.gru._all_weights[0][3]
@@ -185,8 +204,8 @@ class UniSkip(AbstractUniSkip):
 
 class DropUniSkip(AbstractUniSkip):
 
-    def __init__(self, dir_st, vocab, save=True, dropout=0.25):
-        super(DropUniSkip, self).__init__(dir_st, vocab, save, dropout)
+    def __init__(self, dir_st, vocab, save=False, dropout=0.25, fixed_emb=False):
+        super(DropUniSkip, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
         # Modules
         self.seq_drop_x = SequentialDropout(p=self.dropout)
         self.seq_drop_h = SequentialDropout(p=self.dropout)
@@ -245,8 +264,8 @@ class DropUniSkip(AbstractUniSkip):
 
 class BayesianUniSkip(AbstractUniSkip):
 
-    def __init__(self, dir_st, vocab, save=True, dropout=0.25):
-        super(BayesianUniSkip, self).__init__(dir_st, vocab, save, dropout)
+    def __init__(self, dir_st, vocab, save=False, dropout=0.25, fixed_emb=False):
+        super(BayesianUniSkip, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
 
     def _make_rnn_state_dict(self, p):
         s = OrderedDict()
@@ -281,10 +300,120 @@ class BayesianUniSkip(AbstractUniSkip):
         return x
 
 
+###################################################################################
+# BiSkip
+###################################################################################
+
+class AbstractBiSkip(AbstractSkipThoughts):
+
+    def __init__(self, dir_st, vocab, save=False, dropout=0, fixed_emb=False):
+        super(AbstractBiSkip, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
+
+    def _get_table_name(self):
+        return 'btable'
+
+    def _get_skip_name(self):
+        return 'bi_skip'
+
+
+class BiSkip(AbstractBiSkip):
+
+    def __init__(self, dir_st, vocab, save=False, dropout=0.25, fixed_emb=False):
+        super(BiSkip, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
+        # Remove bias_ih_l0 (== zero all the time)
+        # del self.gru._parameters['bias_hh_l0']
+        # del self.gru._all_weights[0][3]
+
+    def _load_rnn(self):
+        self.rnn = nn.GRU(input_size=620,
+                          hidden_size=1200,
+                          batch_first=True,
+                          dropout=self.dropout,
+                          bidirectional=True)
+        parameters = self._load_rnn_params()
+        state_dict = self._make_rnn_state_dict(parameters)
+        self.rnn.load_state_dict(state_dict)
+        return self.rnn
+
+    def _make_rnn_state_dict(self, p):
+        s = OrderedDict()
+        s['bias_ih_l0']   = torch.zeros(3600) 
+        s['bias_hh_l0']   = torch.zeros(3600) # must stay equal to 0
+        s['weight_ih_l0'] = torch.zeros(3600, 620)
+        s['weight_hh_l0'] = torch.zeros(3600, 1200)
+
+        s['bias_ih_l0_reverse']   = torch.zeros(3600) 
+        s['bias_hh_l0_reverse']   = torch.zeros(3600) # must stay equal to 0
+        s['weight_ih_l0_reverse'] = torch.zeros(3600, 620)
+        s['weight_hh_l0_reverse'] = torch.zeros(3600, 1200)
+        
+        s['weight_ih_l0'][:2400] = torch.from_numpy(p['encoder_W']).t()
+        s['weight_ih_l0'][2400:] = torch.from_numpy(p['encoder_Wx']).t()
+        s['bias_ih_l0'][:2400]   = torch.from_numpy(p['encoder_b'])
+        s['bias_ih_l0'][2400:]   = torch.from_numpy(p['encoder_bx'])
+        s['weight_hh_l0'][:2400] = torch.from_numpy(p['encoder_U']).t()
+        s['weight_hh_l0'][2400:] = torch.from_numpy(p['encoder_Ux']).t()  
+
+        s['weight_ih_l0_reverse'][:2400] = torch.from_numpy(p['encoder_r_W']).t()
+        s['weight_ih_l0_reverse'][2400:] = torch.from_numpy(p['encoder_r_Wx']).t()
+        s['bias_ih_l0_reverse'][:2400]   = torch.from_numpy(p['encoder_r_b'])
+        s['bias_ih_l0_reverse'][2400:]   = torch.from_numpy(p['encoder_r_bx'])
+        s['weight_hh_l0_reverse'][:2400] = torch.from_numpy(p['encoder_r_U']).t()
+        s['weight_hh_l0_reverse'][2400:] = torch.from_numpy(p['encoder_r_Ux']).t() 
+        return s
+
+    def forward(self, input, lengths=None):
+        batch_size = input.size(0)
+        if lengths is None:
+            lengths = self._process_lengths(input)
+        x = self.embedding(input)
+        x = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True)
+        x, hn = self.rnn(x) # seq2seq
+        hn = hn.transpose(0, 1)
+        hn = hn.contiguous()
+        hn = hn.view(batch_size, 2 * hn.size(2))
+        # if lengths:
+        #     x = self._select_last(x, lengths)
+        return hn
+
+
+###################################################################################
+# Experimental
+###################################################################################
+
+class AvgWordVectors(AbstractUniSkip):
+
+    def __init__(self, dir_st, vocab, save=False, dropout=0.25, fixed_emb=False):
+        super(AvgWordVectors, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
+        # Remove bias_ih_l0 (== zero all the time)
+        # del self.gru._parameters['bias_hh_l0']
+        # del self.gru._all_weights[0][3]
+
+    def _load_rnn(self):
+        pass
+
+    def _make_rnn_state_dict(self, p):
+        pass          
+
+    def forward(self, input, lengths=None):
+        batch_size = input.size(0)
+        if lengths is None:
+            lengths = self._process_lengths(input)
+        x = self.embedding(input)
+        x = x.sum(1)
+        x = x.view(batch_size, x.size(2))
+        val = Variable(x.data.new().resize_(batch_size, 1).fill_(0))
+        for i in range(batch_size):
+            val.data[i][0] = lengths[i]
+        val = val.expand_as(x)
+        x = torch.div(x, val)
+        return x
+
+
 class BayesianUniSkipAvg(BayesianUniSkip):
 
-    def __init__(self, dir_st, vocab, save=True, dropout=0.25):
-        super(BayesianUniSkipAvg, self).__init__(dir_st, vocab, save, dropout)
+    def __init__(self, dir_st, vocab, save=False, dropout=0.25, fixed_emb=False):
+        super(BayesianUniSkipAvg, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
 
     def _fill_zero_end_of_seq(self, x, lengths):
         mask = x.data.new().resize_as_(x.data).fill_(0)
@@ -315,8 +444,8 @@ class BayesianUniSkipAvg(BayesianUniSkip):
 
 class BayesianUniSkipAtt(BayesianUniSkipAvg):
 
-    def __init__(self, dir_st, vocab, save=True, dropout=0.25):
-        super(BayesianUniSkipAtt, self).__init__(dir_st, vocab, save, dropout)
+    def __init__(self, dir_st, vocab, save=False, dropout=0.25, fixed_emb=False):
+        super(BayesianUniSkipAtt, self).__init__(dir_st, vocab, save, dropout, fixed_emb)
         #self.scorer = nn.Conv1d(2400, 1, 1, stride=1, padding=0)
         self.scorer = nn.Linear(2400, 1)
 
@@ -329,6 +458,7 @@ class BayesianUniSkipAtt(BayesianUniSkipAvg):
         scores = torch.cat(scores, 1)
         scores = self._fill_zero_end_of_seq(scores, lengths)
         # to verify if possible
+        # TODO: Fix softmax
         scores_sm = []
         for i in range(seq_length):
             scores_sm.append(F.softmax(scores[:,i]))
@@ -351,27 +481,28 @@ class BayesianUniSkipAtt(BayesianUniSkipAvg):
 
 
 if __name__ == '__main__':
-    dir_st = '/local/cadene/data/skip-thoughts'
+    dir_st = '/home/cadene/data/skip-thoughts'
     vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
-    #uniskip = BayesianUniSkip(dir_st, vocab)
-    #uniskip = BayesianUniSkipAvg(dir_st, vocab)
-    uniskip = BayesianUniSkipAtt(dir_st, vocab)
+    #model = BayesianUniSkip(dir_st, vocab)
+    #model = BayesianUniSkipAvg(dir_st, vocab)
+    #model = BayesianUniSkipAtt(dir_st, vocab)
+    model = BiSkip(dir_st, vocab)
 
     # batch_size x seq_len
     input = Variable(torch.LongTensor([
-        [1,2,3,4,5,0,0],
         [6,1,2,3,3,4,5],
-        [6,1,2,3,3,4,5]
+        [6,1,2,3,3,4,0],
+        [1,2,3,4,0,0,0]
     ]))
     print(input.size())
-    uniskip.eval()
+    model.eval()
 
     # batch_size x 2400
-    output_seq2vec = uniskip(input, lengths=[5,7,7])
+    output_seq2vec = model(input, lengths=[7,6,5])
     print(output_seq2vec)
 
     # batch_size x 2400
-    output_seq2vec2 = uniskip(input)
+    output_seq2vec2 = model(input)
 
     # # batch_size x seq_len x 2400
-    # output_seq2seq = uniskip(input)
+    # output_seq2seq = model(input)

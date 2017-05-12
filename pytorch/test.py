@@ -145,8 +145,8 @@ class Tester():
          Tester.eq(saved_grad[idx], params.grad.data)
 
 if __name__ == '__main__':
-   dir_st = '/local/cadene/data/skip-thoughts'
-   dir_test = 'data/test'
+   dir_st = '/home/cadene/data/skip-thoughts'
+   dir_test = '../data/test'
    vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
 
    path_uniskip = os.path.join(dir_st, 'uniskip.pth')
