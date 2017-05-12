@@ -4,22 +4,34 @@ import torch
 from torch.autograd import Variable
 import skipthoughts
 
+def is_uniskip(model):
+   for base in model.__class__.__bases__:
+      if base == skipthoughts.AbstractUniSkip:
+         return True
+   return False
+
+def is_biskip(model):
+   for base in model.__class__.__bases__:
+      if base == skipthoughts.AbstractBiSkip:
+         return True
+   return False   
+
 class Tester():
 
    @staticmethod
-   def launch_all_tests(uniskip):
-      print('Test: '+str(uniskip)+'\n')
-      Tester.launch_tests(uniskip)
+   def launch_all_tests(model):
+      print('Test: '+str(model)+'\n')
+      Tester.launch_tests(model)
 
       #print('With lengths processed')
-      #Tester.launch_tests(uniskip)
+      #Tester.launch_tests(model)
 
    @staticmethod
-   def launch_tests(uniskip):
+   def launch_tests(model):
       methods = [func for func in dir(Tester) if callable(getattr(Tester, func)) and 'test_' == func[:5]]
       for name in methods:
          print(name)
-         getattr(Tester, name)(uniskip)
+         getattr(Tester, name)(model)
          print()
 
    @staticmethod
@@ -43,105 +55,109 @@ class Tester():
       print(msg)
 
    @staticmethod
-   def test_oneWord(uniskip):
+   def _test_skipthoughts(model, output, fname):
+      output_gt = torch.from_numpy(numpy.load(os.path.join(dir_test, fname)))
+      if is_uniskip(model):
+         Tester.eq(output.data[0], output_gt[0,:2400])
+      elif is_biskip(model):
+         Tester.eq(output.data[0], output_gt[0,2400:])
+      else:
+         print('Unkown model of type: {} {}'.format(model.__class__, model.__classes__.__bases__))
+
+   @staticmethod
+   def test_oneWord(model):
       input = Variable(torch.LongTensor(1,1))
       input.data.zero_()
       input.data[0,0] = 1
-      output = uniskip(input)
-      output_gt = torch.from_numpy(numpy.load(os.path.join(dir_test,'features_oneWord_normFalse_eosFalse.npy')))
-      Tester.eq(output.data[0], output_gt[0,:2400])
+      output = model(input)
+      Tester._test_skipthoughts(model, output, 'features_oneWord_normFalse_eosFalse.npy')
 
    @staticmethod
-   def test_oneWord_zeroPadding(uniskip):
+   def test_oneWord_zeroPadding(model):
       input = Variable(torch.LongTensor(1,3))
       input.data.zero_()
       input.data[0,0] = 1
-      output = uniskip(input, lengths=[1])
-      output_gt = torch.from_numpy(numpy.load(os.path.join(dir_test,'features_oneWord_normFalse_eosFalse.npy')))
-      Tester.eq(output.data[0], output_gt[0,:2400])
+      output = model(input, lengths=[1])
+      Tester._test_skipthoughts(model, output, 'features_oneWord_normFalse_eosFalse.npy')
 
    @staticmethod
-   def test_oneWord_eos(uniskip):
+   def test_oneWord_eos(model):
       input = Variable(torch.LongTensor(1,10))
       input.data.zero_()
       input.data[0,0] = 1
       input.data[0,1] = 5
-      output = uniskip(input, lengths=[2])
-      output_gt = torch.from_numpy(numpy.load(os.path.join(dir_test,'features_oneWord_normFalse_eosTrue.npy')))
-      Tester.eq(output.data[0], output_gt[0,:2400])
+      output = model(input, lengths=[2])
+      Tester._test_skipthoughts(model, output, 'features_oneWord_normFalse_eosTrue.npy')
 
    @staticmethod
-   def test_words(uniskip):
+   def test_words(model):
       input = Variable(torch.LongTensor(1,3))
       input.data.zero_()
       input.data[0,0] = 1
       input.data[0,1] = 2
       input.data[0,2] = 4
-      output = uniskip(input, lengths=[3])
-      output_gt = torch.from_numpy(numpy.load(os.path.join(dir_test,'features_normFalse_eosFalse.npy')))
-      Tester.eq(output.data[0], output_gt[0,:2400])
+      output = model(input, lengths=[3])
+      Tester._test_skipthoughts(model, output, 'features_normFalse_eosFalse.npy')
 
    @staticmethod
-   def test_words_nolengths(uniskip):
+   def test_words_nolengths(model):
       input = Variable(torch.LongTensor(1,3))
       input.data.zero_()
       input.data[0,0] = 1
       input.data[0,1] = 2
       input.data[0,2] = 4
-      output = uniskip(input)
-      output_gt = torch.from_numpy(numpy.load(os.path.join(dir_test,'features_normFalse_eosFalse.npy')))
-      Tester.eq(output.data[0], output_gt[0,:2400])
+      output = model(input)
+      Tester._test_skipthoughts(model, output, 'features_normFalse_eosFalse.npy')
 
    @staticmethod
-   def bgru_test_words_dropout(uniskip):
+   def bgru_test_words_dropout(model):
       input = Variable(torch.LongTensor(1,3))
       input.data.zero_()
       input.data[0,0] = 1
       input.data[0,1] = 2
       input.data[0,2] = 4
 
-      uniskip.rnn.set_dropout(0.75)
-      print(str(uniskip))
-      output = uniskip(input)
-      output_gt = torch.from_numpy(numpy.load(os.path.join(dir_test,'features_normFalse_eosFalse.npy')))
-      Tester.neq(output.data[0], output_gt[0,:2400])
+      model.rnn.set_dropout(0.75)
+      print(str(model))
+      output = model(input)
+      Tester._test_skipthoughts(model, output, 'features_normFalse_eosFalse.npy')
 
-      # uniskip.rnn.set_dropout(1)
-      # output = uniskip(input)
+      # model.rnn.set_dropout(1)
+      # output = model(input)
       # Tester.eq(output.data[0], output.data[0].clone().fill_(0))
 
-      uniskip.rnn.set_dropout(0)
+      model.rnn.set_dropout(0)
 
    @staticmethod
-   def test_backprop(uniskip):
-      uniskip.zero_grad()
+   def test_backprop(model):
+      model.zero_grad()
       input = Variable(torch.LongTensor(1,3))
       input.data.zero_()
       input.data[0,0] = 1
       input.data[0,1] = 2
       input.data[0,2] = 4
-      output = uniskip(input, lengths=[3])
+      output = model(input, lengths=[3])
       loss = output.sum()
       loss.backward()
-      saved_grad = [params.grad.data.clone() for params in uniskip.parameters()]
+      saved_grad = [params.grad.data.clone() for params in model.parameters()]
 
       # test if backprop all the way
-      for idx, params in enumerate(uniskip.parameters()):
+      for idx, params in enumerate(model.parameters()):
          Tester.neq(params.grad.data.clone().fill_(0), params.grad.data)
 
-      uniskip.zero_grad()
+      model.zero_grad()
       input_pad = Variable(torch.LongTensor(1,10))
       input_pad.data.zero_()
       input_pad.data[0,0] = 1
       input_pad.data[0,1] = 2
       input_pad.data[0,2] = 4
-      output_pad = uniskip(input_pad, lengths=[3])
+      output_pad = model(input_pad, lengths=[3])
       loss_pad = output_pad.sum()
       loss_pad.backward()
 
       # test if backprop works the same way
       # on padded input and non padded input
-      for idx, params in enumerate(uniskip.parameters()):
+      for idx, params in enumerate(model.parameters()):
          Tester.eq(saved_grad[idx], params.grad.data)
 
 if __name__ == '__main__':
@@ -149,7 +165,7 @@ if __name__ == '__main__':
    dir_test = '../data/test'
    vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
 
-   path_uniskip = os.path.join(dir_st, 'uniskip.pth')
+   biskip = skipthoughts.BiSkip(dir_st, vocab, dropout=0)
    uniskip = skipthoughts.UniSkip(dir_st, vocab, dropout=0)
    drop_uniskip = skipthoughts.DropUniSkip(dir_st, vocab, dropout=0)
    bayes_uniskip = skipthoughts.BayesianUniSkip(dir_st, vocab, dropout=0)
@@ -157,6 +173,7 @@ if __name__ == '__main__':
    if not os.path.exists(dir_test):
       os.system('python2 theano/dump_features.py')
 
+   Tester.launch_all_tests(biskip)
    Tester.launch_all_tests(uniskip)
    Tester.launch_all_tests(drop_uniskip)
    Tester.launch_all_tests(bayes_uniskip)
