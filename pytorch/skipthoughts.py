@@ -362,18 +362,33 @@ class BiSkip(AbstractBiSkip):
         s['weight_hh_l0_reverse'][2400:] = torch.from_numpy(p['encoder_r_Ux']).t() 
         return s
 
+    def _argsort(self, seq):
+        return sorted(range(len(seq)), key=seq.__getitem__)
+
     def forward(self, input, lengths=None):
         batch_size = input.size(0)
         if lengths is None:
             lengths = self._process_lengths(input)
-        x = self.embedding(input)
-        x = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True)
+        sorted_lengths = sorted(lengths)
+        sorted_lengths = sorted_lengths[::-1]
+        idx = self._argsort(lengths)
+        idx = idx[::-1] # decreasing order
+        inverse_idx = self._argsort(idx)
+        idx = Variable(torch.LongTensor(idx))
+        inverse_idx = Variable(torch.LongTensor(inverse_idx))
+        if input.data.is_cuda:
+            idx = idx.cuda()
+            inverse_idx = inverse_idx.cuda()
+        x = torch.index_select(input, 0, idx)
+
+        x = self.embedding(x)
+        x = nn.utils.rnn.pack_padded_sequence(x, sorted_lengths, batch_first=True)
         x, hn = self.rnn(x) # seq2seq
         hn = hn.transpose(0, 1)
         hn = hn.contiguous()
         hn = hn.view(batch_size, 2 * hn.size(2))
-        # if lengths:
-        #     x = self._select_last(x, lengths)
+
+        hn = torch.index_select(hn, 0, inverse_idx)
         return hn
 
 
@@ -490,8 +505,8 @@ if __name__ == '__main__':
 
     # batch_size x seq_len
     input = Variable(torch.LongTensor([
-        [6,1,2,3,3,4,5],
         [6,1,2,3,3,4,0],
+        [6,1,2,3,3,4,5],
         [1,2,3,4,0,0,0]
     ]))
     print(input.size())

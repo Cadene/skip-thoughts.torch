@@ -165,16 +165,18 @@ if __name__ == '__main__':
    dir_test = '../data/test'
    vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
 
-   biskip = skipthoughts.BiSkip(dir_st, vocab, dropout=0)
-   uniskip = skipthoughts.UniSkip(dir_st, vocab, dropout=0)
-   drop_uniskip = skipthoughts.DropUniSkip(dir_st, vocab, dropout=0)
-   bayes_uniskip = skipthoughts.BayesianUniSkip(dir_st, vocab, dropout=0)
-
    if not os.path.exists(dir_test):
       os.system('python2 theano/dump_features.py')
 
+   biskip = skipthoughts.BiSkip(dir_st, vocab, dropout=0)
    Tester.launch_all_tests(biskip)
+
+   uniskip = skipthoughts.UniSkip(dir_st, vocab, dropout=0)
    Tester.launch_all_tests(uniskip)
+   
+   drop_uniskip = skipthoughts.DropUniSkip(dir_st, vocab, dropout=0)
    Tester.launch_all_tests(drop_uniskip)
+
+   bayes_uniskip = skipthoughts.BayesianUniSkip(dir_st, vocab, dropout=0)
    Tester.launch_all_tests(bayes_uniskip)
    Tester.bgru_test_words_dropout(bayes_uniskip)
