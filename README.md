@@ -11,8 +11,26 @@
 - numpy
 
 ```
-$ git clone http://github.com/Cadene/skip-thoughts.torch
+$ git clone --recursive http://github.com/Cadene/skip-thoughts.torch
 ```
+
+### Available pretrained models
+
+#### UniSkip
+
+It uses the `nn.GRU` layer from torch with the cudnn backend. It is the fastest implementation, but the dropout is sampled after each time-step in the cudnn implementation... (equals bad regularization)
+
+#### DropUniSkip
+
+It uses the `nn.GRUCell` layer from torch with the cudnn backend. It is slightly slower than UniSkip, however the dropout is sampled once for all time-steps in a sequence (good regularization).
+
+#### BayesianUniSkip
+
+It uses a custom GRU layer with a torch backend. It is at least two times slower than UniSkip, however the dropout is sampled once for all time-steps for each Linear (best regularization).
+
+#### BiSkip
+
+Equivalent to UniSkip, but with a bi-sequential GRU.
 
 ### Quick example
 
@@ -23,7 +41,7 @@ import sys
 sys.path.append('skip-thoughts.torch/pytorch')
 from skipthoughts import UniSkip
 
-dir_st = '/local/cadene/data/skip-thoughts'
+dir_st = 'data/skip-thoughts'
 vocab = ['robots', 'are', 'very', 'cool', '<eos>', 'BiDiBu']
 uniskip = UniSkip(dir_st, vocab)
 
