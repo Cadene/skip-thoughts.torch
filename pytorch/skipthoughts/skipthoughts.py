@@ -9,8 +9,9 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from collections import OrderedDict
 
-from gru import BayesianGRU, GRU
-from dropout import EmbeddingDropout, SequentialDropout
+from .gru import BayesianGRU, GRU
+from .dropout import EmbeddingDropout, SequentialDropout
+
 
 urls = {}
 urls['dictionary'] = 'http://www.cs.toronto.edu/~rkiros/models/dictionary.txt'
@@ -118,14 +119,14 @@ class AbstractSkipThoughts(nn.Module):
             mask[i][lengths[i]-1].fill_(1)
         mask = Variable(mask)
         x = x.mul(mask)
-        x = x.sum(1).view(batch_size, 2400)
+        x = x.sum(1).view(batch_size, -1)
         return x
 
     def _select_last_old(self, input, lengths):
         batch_size = input.size(0)
         x = []
         for i in range(batch_size):
-            x.append(input[i,lengths[i]-1].view(1, 2400))
+            x.append(input[i,lengths[i]-1].view(1, -1))
         output = torch.cat(x, 0)
         return output
  
