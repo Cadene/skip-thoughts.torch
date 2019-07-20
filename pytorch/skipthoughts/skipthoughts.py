@@ -58,7 +58,7 @@ class AbstractSkipThoughts(nn.Module):
         if not os.path.exists(path_params):
             os.system('mkdir -p ' + self.dir_st)
             os.system('wget {} -P {}'.format(urls[table_name], self.dir_st))
-        params = numpy.load(path_params, encoding='latin1') # to load from python2
+        params = numpy.load(path_params, encoding='latin1', allow_pickle=True) # to load from python2
         return params
  
     def _load_rnn_params(self):
@@ -67,7 +67,7 @@ class AbstractSkipThoughts(nn.Module):
         if not os.path.exists(path_params):
             os.system('mkdir -p ' + self.dir_st)
             os.system('wget {} -P {}'.format(urls[skip_name], self.dir_st))
-        params = numpy.load(path_params, encoding='latin1') # to load from python2
+        params = numpy.load(path_params, encoding='latin1', allow_pickle=True) # to load from python2
         return params
 
     def _load_embedding(self):
